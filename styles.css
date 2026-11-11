@@ -87,3 +87,57 @@ html[data-theme="dark"] .project-editor input,html[data-theme="dark"] .project-e
 html[data-theme="dark"] .taxonomy-card{background:#202738}
 @media(max-width:900px){.taxonomy-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.taxonomy-grid{grid-template-columns:1fr}.taxonomy-card{padding:12px}}
+
+/* Project detail workspace */
+.project-detail-overlay{position:fixed;inset:0;z-index:110;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(16,23,39,.52);backdrop-filter:blur(7px)}
+.project-detail-overlay.open{display:flex}
+.project-detail-shell{width:min(100%,1040px);height:min(92vh,850px);display:flex;flex-direction:column;overflow:hidden;background:var(--surface,#fff);border:1px solid var(--line);border-radius:19px;box-shadow:0 25px 90px rgba(14,22,40,.28);color:var(--ink)}
+.project-detail-head{display:flex;justify-content:space-between;gap:18px;padding:25px 28px 17px}
+.project-detail-head h2{font:800 24px Manrope;margin:5px 0}
+.project-detail-head p{font-size:11px;color:var(--muted);margin:0;max-width:650px}
+.project-detail-close{border:0;background:transparent;color:var(--muted);font-size:28px;cursor:pointer;align-self:flex-start}
+.project-detail-tabs{display:flex;gap:4px;padding:0 25px;border-bottom:1px solid var(--line);overflow-x:auto;flex:none}
+.project-detail-tabs button{border:0;border-bottom:2px solid transparent;background:transparent;padding:12px 11px;color:var(--muted);font:600 10px "DM Sans";white-space:nowrap;cursor:pointer}
+.project-detail-tabs button.selected{color:var(--blue);border-color:var(--blue)}
+.project-detail-body{padding:24px 28px;overflow:auto;flex:1}
+.detail-overview-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:14px}
+.detail-summary-card,.detail-info-card,.detail-description-card{padding:18px;border:1px solid var(--line);border-radius:13px;background:var(--surface,#fff)}
+.detail-kicker{font-size:9px;letter-spacing:.08em;font-weight:800;color:var(--muted)}
+.detail-progress-value{display:block;font:800 34px Manrope;margin:13px 0}
+.detail-summary-card p{font-size:10px;color:var(--muted);margin:10px 0 0}
+.detail-info-card dl{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 0}
+.detail-info-card dl div{min-width:0}
+.detail-info-card dt{font-size:9px;color:var(--muted);margin-bottom:4px}
+.detail-info-card dd{font-size:11px;font-weight:700;margin:0;overflow-wrap:anywhere}
+.detail-description-card{margin-top:14px}
+.detail-description-card h3,.detail-section-heading h3{font:800 14px Manrope;margin:0 0 7px}
+.detail-description-card p,.detail-section-heading p{font-size:11px;line-height:1.65;color:var(--muted);white-space:pre-wrap}
+.detail-description-card .secondary-button{margin-top:10px}
+.detail-section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.detail-section-heading p{margin:0}
+.detail-resource-list{display:grid;gap:9px}
+.detail-resource-row{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);border-radius:11px}
+.detail-resource-icon{width:36px;height:36px;display:grid;place-items:center;flex:none;background:#eef0ff;color:#6474df;border-radius:10px;font-size:17px}
+.detail-resource-row>div:nth-child(2){flex:1;min-width:0}
+.detail-resource-row strong{font-size:11px}
+.detail-resource-row small,.detail-resource-row p{display:block;font-size:9px;color:var(--muted);margin:4px 0 0;overflow-wrap:anywhere}
+.detail-resource-actions{display:flex;align-items:center;gap:9px;flex:none}
+.detail-resource-actions a,.detail-resource-actions button{font:600 9px "DM Sans";color:var(--blue);text-decoration:none;border:0;background:transparent;cursor:pointer}
+.detail-resource-form{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff)}
+.detail-resource-form h4{font:800 12px Manrope;margin:0 0 12px}
+.detail-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.detail-resource-form label{display:grid;gap:5px;font-size:9px;font-weight:700;color:var(--muted)}
+.detail-resource-form input,.detail-resource-form select,.detail-resource-form textarea{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;padding:9px;background:transparent;color:var(--ink);font:10px "DM Sans"}
+.detail-full-label{margin-top:11px}
+.detail-form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.detail-form-error{font-size:10px;color:#d66c75}
+.detail-empty-state,.detail-coming-soon,.detail-loading{padding:42px 18px;text-align:center;border:1px dashed var(--line);border-radius:13px;color:var(--muted)}
+.detail-empty-state strong{font-size:12px;color:var(--ink)}
+.detail-empty-state p,.detail-coming-soon p{font-size:10px}
+.detail-coming-soon span{font-size:28px;color:var(--blue)}
+.detail-coming-soon h3{font:800 17px Manrope;color:var(--ink);margin:8px 0}
+.detail-coming-soon small{font-size:9px}
+html[data-theme="dark"] .project-detail-shell,html[data-theme="dark"] .detail-summary-card,html[data-theme="dark"] .detail-info-card,html[data-theme="dark"] .detail-description-card,html[data-theme="dark"] .detail-resource-form{background:#202738}
+html[data-theme="dark"] .detail-resource-icon{background:#30395b;color:#b4bcff}
+html[data-theme="dark"] .detail-resource-form input,html[data-theme="dark"] .detail-resource-form select,html[data-theme="dark"] .detail-resource-form textarea{color:#eef1f8;border-color:#394257}
+@media(max-width:680px){.project-detail-overlay{padding:0}.project-detail-shell{height:100dvh;width:100%;border-radius:0}.project-detail-head{padding:20px 17px 14px}.project-detail-head h2{font-size:20px}.project-detail-tabs{padding:0 12px}.project-detail-body{padding:16px}.detail-overview-grid{grid-template-columns:1fr}.detail-section-heading{align-items:flex-start;flex-direction:column}.detail-form-grid{grid-template-columns:1fr}.detail-resource-row{align-items:flex-start}.detail-resource-actions{flex-direction:column;align-items:flex-end}}
