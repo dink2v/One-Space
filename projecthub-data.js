@@ -144,9 +144,84 @@ async function renderDetailTab(tab){
   body.innerHTML='<div class="detail-loading">Memuat resources…</div>';
   try{await loadDetailResources();body.innerHTML=resourcesMarkup();bindResourceForm(body)}catch(e){body.innerHTML='<div class="detail-empty-state">'+esc(e.message)+'</div>'}return;
  }
- var copy={documents:["Documentation","Dokumentasi internal, tautan dokumen, dan riwayat versi."],notes:["Notes","Catatan, ide, dan informasi penting project."],tasks:["Tasks","Daftar pekerjaan, checklist, dan progres pelaksanaan."],timeline:["Timeline","Riwayat perubahan dan aktivitas project."],attachments:["Attachments","File dan lampiran yang berkaitan dengan project."]}[tab];
+ if(tab==="documents"||tab==="notes"){await renderContentManager(tab);return}
+ var copy={tasks:["Tasks","Daftar pekerjaan, checklist, dan progres pelaksanaan."],timeline:["Timeline","Riwayat perubahan dan aktivitas project."],attachments:["Attachments","File dan lampiran yang berkaitan dengan project."]}[tab];
  body.innerHTML='<div class="detail-coming-soon"><span>✳</span><h3>'+copy[0]+'</h3><p>'+copy[1]+'</p><small>Bagian ini akan dihubungkan ke database pada tahap berikutnya.</small></div>';
 }
+
+var contentItems=[],contentTab="documents",editingContentId=null;
+function contentDate(v){return v?new Date(v).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"}):"—"}
+function contentMarkup(tab){
+ var docs=tab==="documents",title=docs?"Documentation":"Notes",desc=docs?"Simpan dokumentasi project, panduan, dan tautan referensi.":"Simpan ide dan catatan penting, lalu pin catatan yang sering dibuka.";
+ var visible=contentItems.filter(function(x){return !x.is_archived});
+ visible.sort(function(a,b){if(!docs&&!!a.is_pinned!==!!b.is_pinned)return a.is_pinned?-1:1;return new Date(b.updated_at||b.created_at)-new Date(a.updated_at||a.created_at)});
+ return '<div class="detail-section-heading"><div><h3>'+title+'</h3><p>'+desc+'</p></div><button class="primary-button" data-content-add>＋ '+(docs?"Dokumentasi":"Catatan")+'</button></div><div class="content-toolbar"><input type="search" data-content-search placeholder="Cari '+(docs?"dokumentasi":"catatan")+'…" aria-label="Cari '+title+'"><span>'+visible.length+' item</span></div><div class="content-item-list">'+(visible.length?visible.map(function(x){
+ var tags=docs?[x.category,x.folder].filter(Boolean):[x.folder].concat(x.tags||[]).filter(Boolean);
+ return '<article class="content-item-card" data-content-id="'+esc(x.id)+'"><div class="content-item-top"><div><span class="content-item-kind">'+(docs?"DOKUMENTASI":"CATATAN")+'</span>'+( !docs&&x.is_pinned?'<span class="content-pin-label">PINNED</span>':"")+'</div><span class="content-item-date">'+esc(contentDate(x.updated_at||x.created_at))+'</span></div><h4>'+esc(x.title)+'</h4><div class="content-item-tags">'+tags.map(function(t){return '<span>'+esc(t)+'</span>'}).join("")+'</div><p class="content-item-preview">'+esc((x.content||"").slice(0,260))+'</p>'+(docs&&x.external_url?'<a class="content-external-link" href="'+esc(x.external_url)+'" target="_blank" rel="noopener noreferrer">Buka tautan eksternal ↗</a>':"")+'<div class="content-item-actions"><button type="button" data-content-edit="'+esc(x.id)+'">Edit</button>'+(!docs?'<button type="button" data-content-pin="'+esc(x.id)+'">'+(x.is_pinned?"Lepas pin":"Pin")+'</button>':"")+'<button type="button" data-content-archive="'+esc(x.id)+'">Arsipkan</button><button type="button" class="danger-text" data-content-delete="'+esc(x.id)+'">Hapus</button></div></article>';
+ }).join(""):'<div class="detail-empty-state"><strong>Belum ada '+(docs?"dokumentasi":"catatan")+'</strong><p>Klik tombol tambah untuk membuat yang pertama.</p></div>')+'</div><form class="content-editor-form" id="contentEditorForm" hidden><div class="content-editor-heading"><h4 data-content-editor-title>Tambah '+title+'</h4><button type="button" class="content-editor-close" data-content-cancel aria-label="Tutup">×</button></div><label>Judul<input name="title" maxlength="160" required placeholder="Masukkan judul…"></label><div class="content-editor-grid"><label>Folder<input name="folder" maxlength="80" placeholder="Contoh: Planning"></label>'+(docs?'<label>Kategori<input name="category" maxlength="60" placeholder="Contoh: Technical"></label><label class="content-editor-wide">Tautan eksternal<input name="external_url" type="url" placeholder="https://…"></label>':'<label>Tags<input name="tags" maxlength="240" placeholder="ide, referensi, penting"><small>Pisahkan tag dengan koma.</small></label>')+'</div><label>Isi '+(docs?"dokumentasi":"catatan")+'<textarea name="content" rows="10" maxlength="30000" placeholder="Tulis isi di sini…" required></textarea></label><p class="content-editor-error" role="alert"></p><div class="detail-form-actions"><button type="button" class="secondary-button" data-content-cancel>Batal</button><button type="submit" class="primary-button">Simpan</button></div></form>';
+}
+async function renderContentManager(tab){
+ contentTab=tab;var body=$("#projectDetailBody");body.innerHTML='<div class="detail-loading">Memuat '+(tab==="documents"?"dokumentasi":"catatan")+'…</div>';
+ try{
+  var table=tab==="documents"?"documents":"notes";
+  contentItems=await readTable(table,"select=*&project_id=eq."+encodeURIComponent(activeProject.id)+"&order=updated_at.desc");
+  body.innerHTML=contentMarkup(tab);bindContentManager(body,tab);
+ }catch(e){body.innerHTML='<div class="detail-empty-state">'+esc(e.message||"Gagal memuat data.")+'</div>'}
+}
+function bindContentManager(body,tab){
+ var docs=tab==="documents",table=docs?"documents":"notes",form=$("#contentEditorForm",body);
+ function resetEditor(){editingContentId=null;form.reset();form.hidden=true;form.querySelector(".content-editor-error").textContent=""}
+ function openContentEditor(id){
+  var item=contentItems.find(function(x){return x.id===id});editingContentId=id||null;form.reset();form.hidden=false;
+  form.elements.title.value=item?item.title:"";form.elements.folder.value=item&&item.folder||"";
+  form.elements.content.value=item?item.content||"":"";
+  if(docs){form.elements.category.value=item&&item.category||"";form.elements.external_url.value=item&&item.external_url||""}
+  else form.elements.tags.value=item?(item.tags||[]).join(", "):"";
+  $("[data-content-editor-title]",form).textContent=(item?"Edit ":"Tambah ")+(docs?"dokumentasi":"catatan");
+  form.querySelector(".content-editor-error").textContent="";form.scrollIntoView({behavior:"smooth",block:"nearest"});form.elements.title.focus();
+ }
+ $("[data-content-add]",body).addEventListener("click",function(){openContentEditor(null)});
+ body.querySelectorAll("[data-content-cancel]").forEach(function(b){b.addEventListener("click",resetEditor)});
+ $("[data-content-search]",body).addEventListener("input",function(e){
+  var q=e.target.value.trim().toLocaleLowerCase("id-ID");
+  body.querySelectorAll(".content-item-card").forEach(function(card){var item=contentItems.find(function(x){return x.id===card.dataset.contentId});var hay=[item.title,item.content,item.folder,item.category,(item.tags||[]).join(" ")].join(" ").toLocaleLowerCase("id-ID");card.hidden=!hay.includes(q)});
+ });
+ body.querySelectorAll("[data-content-edit]").forEach(function(b){b.addEventListener("click",function(){openContentEditor(b.dataset.contentEdit)})});
+ body.querySelectorAll("[data-content-delete]").forEach(function(b){b.addEventListener("click",async function(){
+  if(!window.confirm("Hapus item ini secara permanen?"))return;
+  try{await window.projecthubWrite("delete",table,null,{id:b.dataset.contentDelete});await renderContentManager(tab);window.showToast("Item berhasil dihapus.")}
+  catch(e){window.showToast(e.message||"Gagal menghapus item.")}
+ })});
+ body.querySelectorAll("[data-content-archive]").forEach(function(b){b.addEventListener("click",async function(){
+  if(!window.confirm("Arsipkan item ini? Item tetap tersimpan dan bisa dipulihkan nanti."))return;
+  try{await window.projecthubWrite("update",table,{is_archived:true},{id:b.dataset.contentArchive});await renderContentManager(tab);window.showToast("Item diarsipkan.")}
+  catch(e){window.showToast(e.message||"Gagal mengarsipkan item.")}
+ })});
+ if(!docs)body.querySelectorAll("[data-content-pin]").forEach(function(b){b.addEventListener("click",async function(){
+  var item=contentItems.find(function(x){return x.id===b.dataset.contentPin});if(!item)return;
+  try{await window.projecthubWrite("update",table,{is_pinned:!item.is_pinned},{id:item.id});await renderContentManager(tab);window.showToast(item.is_pinned?"Pin dilepas.":"Catatan dipin.")}
+  catch(e){window.showToast(e.message||"Gagal mengubah pin.")}
+ })});
+ form.addEventListener("submit",async function(e){
+  e.preventDefault();var d=new FormData(form),title=String(d.get("title")||"").trim(),content=String(d.get("content")||"").trim(),error=form.querySelector(".content-editor-error");
+  if(!title||!content){error.textContent="Judul dan isi wajib diisi.";return}
+  var payload={title:title,content:content,folder:String(d.get("folder")||"").trim()||null};
+  if(docs){
+   var url=String(d.get("external_url")||"").trim();
+   if(url&&!/^https?:\/\//i.test(url)){error.textContent="Tautan harus diawali http:// atau https://";return}
+   payload.category=String(d.get("category")||"").trim()||null;payload.external_url=url||null;
+   if(editingContentId){var current=contentItems.find(function(x){return x.id===editingContentId});payload.version=(Number(current&&current.version)||1)+1}
+  }else payload.tags=String(d.get("tags")||"").split(",").map(function(x){return x.trim()}).filter(Boolean).slice(0,10);
+  var submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent="Menyimpan…";error.textContent="";
+  try{
+   if(editingContentId)await window.projecthubWrite("update",table,payload,{id:editingContentId});
+   else{payload.project_id=activeProject.id;await window.projecthubWrite("insert",table,payload)}
+   await renderContentManager(tab);window.showToast(docs?"Dokumentasi tersimpan.":"Catatan tersimpan.");
+  }catch(err){error.textContent=err.message||"Gagal menyimpan."}
+  finally{submit.disabled=false;submit.textContent="Simpan"}
+ });
+}
+
 function bindResourceForm(body){
  var form=$("#detailResourceForm",body),add=$("[data-add-resource]",body);
  add.addEventListener("click",function(){form.hidden=false;form.elements.name.focus()});
