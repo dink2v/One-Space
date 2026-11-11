@@ -41,3 +41,27 @@ html[data-theme="dark"] .settings-nav button:hover,html[data-theme="dark"] .sett
 @media(max-width:600px){.join-dialog-card{padding:24px 20px;border-radius:16px}}
 html[data-theme="dark"] .join-dialog-card{background:#202738;border-color:#30394c;color:#eef1f8}
 html[data-theme="dark"] .join-dialog-card form input{color:#eef1f8}
+
+/* Live project data and editor */
+.live-edit-button{border:1px solid var(--line);background:var(--surface,#fff);color:#6373dc;border-radius:7px;padding:6px 10px;font:600 10px "DM Sans";cursor:pointer}
+.live-edit-button:hover{background:#f1f3ff}
+.empty-project-state{grid-column:1/-1;padding:34px 20px;text-align:center;border:1px dashed var(--line);border-radius:14px;color:var(--muted)}
+.empty-project-state strong{display:block;color:var(--ink);font:700 14px Manrope;margin-bottom:6px}
+.empty-project-state p{font-size:11px;margin:0}
+.project-editor-overlay{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(18,25,43,.5);backdrop-filter:blur(6px)}
+.project-editor-overlay.open{display:flex}
+.project-editor{position:relative;width:min(100%,620px);max-height:min(90vh,820px);overflow:auto;padding:28px;background:var(--surface,#fff);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 80px rgba(18,25,43,.24);color:var(--ink)}
+.project-editor-close{position:absolute;right:16px;top:12px;border:0;background:transparent;color:#929bad;font-size:25px;cursor:pointer}
+.project-editor h2{font:800 23px Manrope;margin:7px 0}
+.project-editor-subtitle{font-size:11px;color:var(--muted);margin:0 0 20px}
+.project-editor form{display:grid;gap:13px}
+.project-editor label{display:grid;gap:6px;font-size:10px;font-weight:700;color:var(--muted)}
+.project-editor input,.project-editor textarea,.project-editor select{width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;padding:10px 11px;background:var(--surface,#fff);color:var(--ink);font:12px "DM Sans";outline:none}
+.project-editor input:focus,.project-editor textarea:focus,.project-editor select:focus{border-color:#7180e8;box-shadow:0 0 0 3px #7180e81c}
+.project-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.project-editor-error{min-height:15px;margin:0;color:#d66c75;font-size:10px}
+.project-editor-actions{display:flex;justify-content:flex-end;gap:9px;padding-top:7px}
+.project-editor-actions .primary-button{min-height:38px}
+html[data-theme="dark"] .project-editor{background:#202738;border-color:#394257;color:#eef1f8}
+html[data-theme="dark"] .project-editor input,html[data-theme="dark"] .project-editor textarea,html[data-theme="dark"] .project-editor select{background:#252e40;color:#eef1f8;border-color:#394257}
+@media(max-width:560px){.project-editor{padding:24px 18px;border-radius:15px}.project-editor-grid{grid-template-columns:1fr}.project-editor-actions{position:sticky;bottom:-24px;background:var(--surface,#fff);padding:12px 0 0}}
