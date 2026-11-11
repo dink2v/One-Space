@@ -394,4 +394,8 @@ function bindJoinAccess(panel) {
   checkJoinStatus().then(updateJoinStatus);
 }
 
+function initJoinAccess() {
+  ensureJoinDialog();
+  checkJoinStatus().then(updateJoinStatus);
+}
 initJoinAccess();
