@@ -394,6 +394,24 @@ function bindJoinAccess(panel) {
   checkJoinStatus().then(updateJoinStatus);
 }
 
+
+async function projecthubWrite(operation, table, data, keys) {
+  const token = getJoinToken();
+  if (!token) throw new Error("Perangkat ini belum Join.");
+  const active = await checkJoinStatus();
+  if (!active) throw new Error("Akses perangkat tidak aktif. Silakan Join kembali.");
+  const response = await fetch("https://mflpyylhzggjwxxplzcz.supabase.co/functions/v1/projecthub-write", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify({ token, operation, table, data, keys })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) throw new Error(result.error || "Perubahan data gagal.");
+  return result.data;
+}
+window.projecthubWrite = projecthubWrite;
+
 function initJoinAccess() {
   ensureJoinDialog();
   checkJoinStatus().then(updateJoinStatus);
