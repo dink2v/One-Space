@@ -19,3 +19,25 @@ html[data-theme="dark"] .settings-nav,html[data-theme="dark"] .setting-input,htm
 html[data-theme="dark"] .settings-nav button:hover,html[data-theme="dark"] .settings-footnote{background:#252e40}
 @media(max-width:760px){.settings-layout{grid-template-columns:1fr}.settings-nav{display:flex;overflow-x:auto;gap:3px}.settings-nav button{white-space:nowrap;flex:none}.settings-panel{padding:17px}}
 @media(max-width:520px){.setting-row{gap:10px}.setting-input{width:48%}.settings-footnote{font-size:8px}}
+
+
+/* Join access dialog */
+.join-dialog{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(18,25,43,.48);backdrop-filter:blur(7px)}
+.join-dialog.open{display:flex}
+.join-dialog-card{position:relative;width:min(100%,420px);padding:30px;background:var(--surface,#fff);border:1px solid var(--line,#e7eaf1);border-radius:20px;box-shadow:0 24px 80px rgba(18,25,43,.22);color:var(--ink,#263148)}
+.join-dialog-close{position:absolute;right:16px;top:13px;border:0;background:transparent;color:#929bad;font-size:25px;cursor:pointer}
+.join-dialog-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#eef0ff;color:#596de7;font-size:22px;margin-bottom:18px}
+.join-dialog-card>.eyebrow{margin-bottom:8px}
+.join-dialog-card h2{font:800 22px Manrope;margin:0 0 8px}
+.join-dialog-copy,.join-dialog-foot{font-size:11px;line-height:1.65;color:#929bad}
+.join-dialog-card form{display:grid;gap:9px;margin-top:22px}
+.join-dialog-card form label{font-size:10px;font-weight:700;color:#68738a}
+.join-dialog-card form input{height:45px;border:1px solid var(--line,#e7eaf1);border-radius:10px;padding:0 13px;background:transparent;color:var(--ink,#263148);font:12px "DM Sans";outline:none}
+.join-dialog-card form input:focus{border-color:#7180e8;box-shadow:0 0 0 3px #7180e81c}
+.join-dialog-error{min-height:14px;margin:0;color:#d66c75;font-size:10px}
+.join-submit{width:100%;height:43px}
+.join-submit:disabled{opacity:.65;cursor:wait}
+.join-dialog-foot{margin:17px 0 0;padding-top:14px;border-top:1px solid var(--line,#e7eaf1)}
+@media(max-width:600px){.join-dialog-card{padding:24px 20px;border-radius:16px}}
+html[data-theme="dark"] .join-dialog-card{background:#202738;border-color:#30394c;color:#eef1f8}
+html[data-theme="dark"] .join-dialog-card form input{color:#eef1f8}
