@@ -53,7 +53,60 @@ function init(){
   var project=e.target.closest(".live-project-card");if(project&&!e.target.closest("button")){e.preventDefault();e.stopImmediatePropagation();window.showToast("Project: "+project.dataset.name)}
  },true);
  document.addEventListener("click",function(e){if(e.target.closest('.nav-item[data-page="projects"],[data-goto="projects"],.nav-item[data-page="overview"],[data-goto="overview"]'))setTimeout(renderLiveProjects,100)});
+ watchSettingsPanel();
  loadData().catch(function(e){console.warn("PROJECTHUB read:",e)});
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+
+function taxonomyMarkup(){
+ var groups=[["Kategori","project_categories",categories],["Status","project_statuses",statuses],["Prioritas","project_priorities",priorities]];
+ return '<section class="taxonomy-manager"><div class="taxonomy-heading"><div><h3>Pengaturan project</h3><p>Kelola kategori, status, dan prioritas dari satu tempat.</p></div></div><div class="taxonomy-grid">'+groups.map(function(g){return '<section class="taxonomy-card" data-taxonomy-table="'+g[1]+'"><h4>'+g[0]+'</h4><form class="taxonomy-add"><input name="name" maxlength="40" placeholder="Nama '+g[0].toLowerCase()+'" required><input name="color" type="color" value="#64748b" aria-label="Warna"><button class="secondary-button" type="submit">＋ Tambah</button></form><div class="taxonomy-items">'+g[2].map(function(x){return '<div class="taxonomy-item" data-taxonomy-id="'+esc(x.id)+'"><span class="taxonomy-color" style="background:'+esc(x.color||"#64748b")+'"></span><span>'+esc(x.name)+'</span><button type="button" data-taxonomy-edit aria-label="Ubah '+esc(x.name)+'">Ubah</button><button type="button" data-taxonomy-delete aria-label="Hapus '+esc(x.name)+'">×</button></div>'}).join("")+'</div></section>'}).join("")+'</div><p class="taxonomy-footnote">Item yang masih dipakai project tidak bisa dihapus. Mengubah nama atau warna tidak mengubah project yang sudah menggunakannya.</p></section>';
+}
+function attachTaxonomyManager(panel){
+ if(!panel||!panel.querySelector("[data-open-join]")||panel.querySelector(".taxonomy-manager"))return;
+ panel.insertAdjacentHTML("beforeend",taxonomyMarkup());
+ panel.querySelectorAll(".taxonomy-card").forEach(function(card){
+  card.querySelector(".taxonomy-add").addEventListener("submit",async function(e){
+   e.preventDefault();var form=e.currentTarget,d=new FormData(form),name=String(d.get("name")||"").trim(),table=card.dataset.taxonomyTable;
+   if(!name)return;
+   var source=table==="project_categories"?categories:table==="project_statuses"?statuses:priorities;
+   if(source.some(function(x){return x.name.toLowerCase()===name.toLowerCase()})){window.showToast("Nama sudah digunakan.");return}
+   var payload={name:name,color:d.get("color")||"#64748b",is_system:false,sort_order:source.reduce(function(m,x){return Math.max(m,Number(x.sort_order)||0)},0)+1};
+   try{await window.projecthubWrite("insert",table,payload);await loadData();var fresh=$("#settingsPanel");if(fresh)attachTaxonomyManager(fresh);window.showToast("Item berhasil ditambahkan.");}
+   catch(err){window.showToast(err.message||"Gagal menambahkan item.")}
+  });
+ });
+ panel.querySelectorAll("[data-taxonomy-edit]").forEach(function(btn){
+  btn.addEventListener("click",async function(){
+   var item=btn.closest("[data-taxonomy-id]"),card=btn.closest(".taxonomy-card"),table=card.dataset.taxonomyTable;
+   var source=table==="project_categories"?categories:table==="project_statuses"?statuses:priorities;
+   var record=source.find(function(x){return x.id===item.dataset.taxonomyId});if(!record)return;
+   var name=window.prompt("Ubah nama:",record.name);if(name===null)return;name=name.trim();if(!name)return;
+   var color=window.prompt("Warna HEX (contoh #64748b):",record.color||"#64748b");if(color===null)return;
+   if(!/^#[0-9a-fA-F]{6}$/.test(color)){window.showToast("Format warna tidak valid.");return}
+   try{await window.projecthubWrite("update",table,{name:name,color:color},{id:record.id});await loadData();attachTaxonomyManager($("#settingsPanel"));window.showToast("Item berhasil diperbarui.");}
+   catch(err){window.showToast(err.message||"Gagal memperbarui item.")}
+  });
+ });
+ panel.querySelectorAll("[data-taxonomy-delete]").forEach(function(btn){
+  btn.addEventListener("click",async function(){
+   var item=btn.closest("[data-taxonomy-id]"),card=btn.closest(".taxonomy-card"),table=card.dataset.taxonomyTable;
+   var source=table==="project_categories"?categories:table==="project_statuses"?statuses:priorities;
+   var record=source.find(function(x){return x.id===item.dataset.taxonomyId});if(!record)return;
+   if(!window.confirm('Hapus "'+record.name+'"?'))return;
+   try{
+    var check=await fetch(URL_BASE+"/rest/v1/projects?select=id&"+(table==="project_categories"?"category_id":table==="project_statuses"?"status_id":"priority_id")+"=eq."+encodeURIComponent(record.id)+"&deleted_at=is.null&limit=1",{headers:headers,cache:"no-store"});
+    if(!check.ok)throw Error("Tidak bisa memeriksa penggunaan item.");
+    if((await check.json()).length){window.showToast("Tidak bisa dihapus karena masih digunakan project.");return}
+    await window.projecthubWrite("delete",table,null,{id:record.id});await loadData();attachTaxonomyManager($("#settingsPanel"));window.showToast("Item berhasil dihapus.");
+   }catch(err){window.showToast(err.message||"Gagal menghapus item.")}
+  });
+ });
+}
+function watchSettingsPanel(){
+ var panel=$("#settingsPanel");if(!panel)return;
+ new MutationObserver(function(){attachTaxonomyManager(panel)}).observe(panel,{childList:true});
+ attachTaxonomyManager(panel);
+}
+
 })();
