@@ -104,9 +104,9 @@ function attachTaxonomyManager(panel){
  });
 }
 function watchSettingsPanel(){
- var panel=$("#settingsPanel");if(!panel)return;
- new MutationObserver(function(){attachTaxonomyManager(panel)}).observe(panel,{childList:true});
- attachTaxonomyManager(panel);
+ var root=document.body;
+ new MutationObserver(function(){var panel=$("#settingsPanel");if(panel)attachTaxonomyManager(panel)}).observe(root,{childList:true,subtree:true});
+ var panel=$("#settingsPanel");if(panel)attachTaxonomyManager(panel);
 }
 
 })();
