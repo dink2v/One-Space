@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f6f8fc">
+  <meta name="description" content="PROJECTHUB — One Space. Satu ruang untuk semua project.">
+  <title>PROJECTHUB — One Space.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#" aria-label="ProjectHub beranda">
+        <span class="brand-mark"><span></span><span></span><span></span><span></span></span>
+        <span class="brand-copy"><strong>PROJECTHUB</strong><small>ONE SPACE.</small></span>
+      </a>
+      <div class="side-label">WORKSPACE</div>
+      <nav class="nav-list" aria-label="Navigasi utama">
+        <button class="nav-item active" data-page="overview"><span class="nav-icon">▦</span> Overview</button>
+        <button class="nav-item" data-page="projects"><span class="nav-icon">◫</span> My Projects <span class="nav-count">8</span></button>
+        <button class="nav-item" data-page="calendar"><span class="nav-icon">▣</span> Calendar</button>
+        <button class="nav-item" data-page="tasks"><span class="nav-icon">☷</span> Tasks <span class="nav-count">12</span></button>
+      </nav>
+      <div class="side-label side-label-spaced">ORGANIZE</div>
+      <nav class="nav-list">
+        <button class="nav-item" data-page="resources"><span class="nav-icon">⌁</span> Resources</button>
+        <button class="nav-item" data-page="notes"><span class="nav-icon">▤</span> Notes</button>
+        <button class="nav-item" data-page="documents"><span class="nav-icon">▧</span> Documentation</button>
+        <button class="nav-item" data-page="analytics"><span class="nav-icon">▥</span> Analytics</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="storage-card"><div class="storage-icon">✦</div><strong>Everything in one place.</strong><p>Keep your ideas, links, and progress organized.</p></div>
+        <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span> Settings</button>
+        <div class="sidebar-foot"><span class="status-dot"></span> Workspace is public <span class="lock-mini">↗</span></div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button class="mobile-menu" id="menuToggle" aria-label="Buka menu">☰</button>
+        <div class="breadcrumb"><span>Workspace</span><b>/</b><strong id="pageCrumb">Overview</strong></div>
+        <div class="top-actions">
+          <button class="icon-button" aria-label="Notifikasi">♧<i class="notify-dot"></i></button>
+          <button class="help-button">? <span>Help center</span></button>
+          <div class="avatar">D</div>
+        </div>
+      </header>
+
+      <div class="content-wrap">
+        <section class="welcome-row">
+          <div><div class="eyebrow"><span class="eyebrow-line"></span> WEDNESDAY, NOVEMBER 11, 2026</div><h1 id="pageTitle">Good afternoon<span class="wave">✦</span></h1><p class="subheading" id="pageSubtitle">Satu ruang untuk semua project. Everything, connected.</p></div>
+          <button class="primary-button" id="addProject"><span>＋</span> New project</button>
+        </section>
+
+        <section class="stats-grid" aria-label="Ringkasan workspace">
+          <article class="stat-card"><div class="stat-top"><span>Total projects</span><span class="stat-icon purple">◫</span></div><div class="stat-value">08 <small>projects</small></div><div class="stat-foot"><span class="trend up">↗ 2</span> <span>added this month</span></div></article>
+          <article class="stat-card"><div class="stat-top"><span>In progress</span><span class="stat-icon blue">◷</span></div><div class="stat-value">04 <small>projects</small></div><div class="stat-foot"><span class="trend neutral">50%</span> <span>of all projects</span></div></article>
+          <article class="stat-card"><div class="stat-top"><span>Tasks completed</span><span class="stat-icon green">✓</span></div><div class="stat-value">24 <small>/ 36 tasks</small></div><div class="progress-track"><span style="width:67%"></span></div></article>
+          <article class="stat-card"><div class="stat-top"><span>Upcoming deadlines</span><span class="stat-icon orange">◷</span></div><div class="stat-value">03 <small>this week</small></div><div class="stat-foot"><span class="deadline-dot"></span><span>Next: Nov 13, 2026</span></div></article>
+        </section>
+
+        <section class="main-grid">
+          <div class="primary-column">
+            <div class="section-heading"><div><h2>Recent projects</h2><p>Pick up where you left off.</p></div><button class="text-button" data-goto="projects">View all projects <span>→</span></button></div>
+            <div class="project-grid" id="projectGrid">
+              <article class="project-card" data-category="Website" data-status="In Progress" data-name="ProjectHub"><div class="project-card-top"><div class="project-symbol symbol-violet">✳</div><button class="more-button" aria-label="More options">···</button></div><div class="project-meta"><span class="category-pill">Website</span><span class="status-pill progress">● In progress</span></div><h3>ProjectHub</h3><p>One space to organize every project, resource, and idea.</p><div class="project-progress"><div class="progress-label"><span>Progress</span><strong>68%</strong></div><div class="progress-track"><span style="width:68%"></span></div></div><div class="project-card-foot"><span>◷ Nov 28, 2026</span><span class="mini-avatar">D</span></div></article>
+              <article class="project-card" data-category="Mobile App" data-status="In Progress" data-name="ChatApp"><div class="project-card-top"><div class="project-symbol symbol-blue">▣</div><button class="more-button" aria-label="More options">···</button></div><div class="project-meta"><span class="category-pill">Mobile App</span><span class="status-pill progress">● In progress</span></div><h3>ChatApp</h3><p>A simple and modern real-time messaging experience.</p><div class="project-progress"><div class="progress-label"><span>Progress</span><strong>42%</strong></div><div class="progress-track"><span style="width:42%"></span></div></div><div class="project-card-foot"><span>◷ Dec 05, 2026</span><span class="mini-avatar">D</span></div></article>
+              <article class="project-card" data-category="School Project" data-status="Planning" data-name="SMK 3 Batu Website"><div class="project-card-top"><div class="project-symbol symbol-orange">⌘</div><button class="more-button" aria-label="More options">···</button></div><div class="project-meta"><span class="category-pill">School Project</span><span class="status-pill planning">● Planning</span></div><h3>SMK 3 Batu Website</h3><p>WordPress website setup, content workflow, and backup.</p><div class="project-progress"><div class="progress-label"><span>Progress</span><strong>15%</strong></div><div class="progress-track"><span style="width:15%"></span></div></div><div class="project-card-foot"><span>◷ Dec 12, 2026</span><span class="mini-avatar">D</span></div></article>
+              <article class="project-card" data-category="Design" data-status="Completed" data-name="Digital Yearbook"><div class="project-card-top"><div class="project-symbol symbol-pink">▧</div><button class="more-button" aria-label="More options">···</button></div><div class="project-meta"><span class="category-pill">Design</span><span class="status-pill completed">● Completed</span></div><h3>Digital Yearbook</h3><p>A digital collection of stories, memories, and moments.</p><div class="project-progress"><div class="progress-label"><span>Progress</span><strong>100%</strong></div><div class="progress-track"><span style="width:100%"></span></div></div><div class="project-card-foot"><span>✓ Completed Nov 08</span><span class="mini-avatar">D</span></div></article>
+            </div>
+
+            <div class="section-heading task-heading"><div><h2>Upcoming tasks</h2><p>Small steps make big progress.</p></div><button class="text-button" data-goto="tasks">View all tasks <span>→</span></button></div>
+            <div class="task-list">
+              <div class="task-row"><span class="task-check"></span><div class="task-info"><strong>Finalize dashboard UI</strong><small>ProjectHub <i>·</i> Today</small></div><span class="priority high">High</span></div>
+              <div class="task-row"><span class="task-check"></span><div class="task-info"><strong>Review chat room layout</strong><small>ChatApp <i>·</i> Nov 13</small></div><span class="priority medium">Medium</span></div>
+              <div class="task-row"><span class="task-check checked">✓</span><div class="task-info"><strong>Prepare WordPress files</strong><small>SMK 3 Batu Website <i>·</i> Nov 14</small></div><span class="priority low">Low</span></div>
+            </div>
+          </div>
+
+          <aside class="right-column">
+            <section class="panel calendar-panel"><div class="panel-heading"><div><h3>November 2026</h3><p>Your schedule at a glance</p></div><div class="month-arrows"><button>‹</button><button>›</button></div></div><div class="mini-calendar"><div class="calendar-days"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div><div class="calendar-dates"><span class="muted">26</span><span class="muted">27</span><span class="muted">28</span><span class="muted">29</span><span class="muted">30</span><span>31</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span class="today">11</span><span>12</span><span class="has-event">13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span class="muted">1</span><span class="muted">2</span><span class="muted">3</span><span class="muted">4</span><span class="muted">5</span><span class="muted">6</span></div></div><button class="calendar-link" data-goto="calendar">Open calendar →</button></section>
+            <section class="panel activity-panel"><div class="panel-heading"><div><h3>Recent activity</h3><p>Latest workspace updates</p></div><button class="more-button">···</button></div><div class="activity-list"><div class="activity-item"><span class="activity-avatar violet">✳</span><div><strong>ProjectHub</strong><p>Progress updated to 68%</p><small>Today, 10:42 AM</small></div></div><div class="activity-item"><span class="activity-avatar blue">▣</span><div><strong>ChatApp</strong><p>New resource added</p><small>Yesterday, 4:18 PM</small></div></div><div class="activity-item"><span class="activity-avatar orange">⌘</span><div><strong>SMK 3 Batu Website</strong><p>Deadline changed</p><small>Nov 09, 2:05 PM</small></div></div></div><button class="calendar-link">View timeline →</button></section>
+            <section class="quote-card"><div class="quote-mark">“</div><p>Great things are done by a series of small things brought together.</p><span>— Vincent van Gogh</span><div class="quote-decoration">✳</div></section>
+          </aside>
+        </section>
+        <footer class="page-footer"><span>© 2026 PROJECTHUB</span><span>One Space. <i>·</i> Satu ruang untuk semua project.</span></footer>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
