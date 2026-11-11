@@ -106,7 +106,23 @@ function renderPage(page) {
       <div class="analytics-grid"><section class="panel analytics-panel"><div class="panel-heading"><div><h3>Project progress</h3><p>Current completion across projects</p></div><span class="soft-chip">This month</span></div>${projects.slice(0,5).map(p=>`<div class="bar-row"><div><span>${p.name}</span><strong>${p.progress}%</strong></div><div class="progress-track"><span style="width:${p.progress}%"></span></div></div>`).join("")}</section><section class="panel analytics-panel"><div class="panel-heading"><div><h3>Project status</h3><p>Workspace distribution</p></div></div><div class="donut-wrap"><div class="donut"><strong>08<small>Projects</small></strong></div><div class="legend"><span>● In progress <b>4</b></span><span>● Planning <b>2</b></span><span>● Completed <b>2</b></span></div></div></section></div>`;
   } else if (page === "settings") {
     body = `
-      <div class="settings-layout"><div class="settings-nav"><button class="selected">General</button><button>Appearance</button><button>Workspace</button><button>Notifications</button><button>Accessibility</button></div><div class="panel settings-panel"><div class="settings-title"><h2>General settings</h2><p>Manage your workspace preferences.</p></div><div class="setting-row"><div><strong>Language</strong><small>Choose the language used across the workspace.</small></div><select><option>Bahasa Indonesia</option><option>English</option></select></div><div class="setting-row"><div><strong>Theme</strong><small>Choose how ProjectHub looks on this device.</small></div><select id="themeSelect"><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></select></div><div class="setting-row"><div><strong>Accent color</strong><small>Personalize buttons and highlights.</small></div><div class="color-options"><button class="color-choice chosen" data-color="#5268e8"></button><button class="color-choice mint" data-color="#269d83"></button><button class="color-choice rose" data-color="#d76d91"></button><button class="color-choice amber" data-color="#d99a43"></button></div></div><div class="setting-row"><div><strong>Compact interface</strong><small>Reduce spacing for a denser layout.</small></div><label class="toggle"><input type="checkbox" id="compactToggle"><span></span></label></div><div class="setting-row"><div><strong>Workspace visibility</strong><small>Project content can be viewed publicly.</small></div><span class="soft-chip public-chip">Public view</span></div></div></div>`;
+      <div class="settings-layout">
+        <nav class="settings-nav" aria-label="Settings sections">
+          <button class="selected" data-settings-tab="general">General</button>
+          <button data-settings-tab="appearance">Appearance</button>
+          <button data-settings-tab="workspace">Workspace</button>
+          <button data-settings-tab="notifications">Notifications</button>
+          <button data-settings-tab="calendar">Calendar</button>
+          <button data-settings-tab="accessibility">Accessibility</button>
+        </nav>
+        <div class="panel settings-panel" id="settingsPanel" aria-live="polite">
+          <div class="settings-title"><h2>Umum</h2><p>Atur bahasa, format tanggal, waktu, dan zona waktu di satu tempat.</p></div>
+          <div class="setting-row"><div><strong>Bahasa</strong><small>Bahasa yang digunakan di seluruh PROJECTHUB.</small></div><span class="setting-value">Bahasa Indonesia</span></div>
+          <div class="setting-row"><div><strong>Format tanggal</strong><small>Pilih cara tanggal ditampilkan.</small></div><select><option>DD/MM/YYYY</option><option>DD MMM YYYY</option><option>YYYY-MM-DD</option></select></div>
+          <div class="setting-row"><div><strong>Format waktu</strong><small>Gunakan format 24 atau 12 jam.</small></div><select><option>24 jam</option><option>12 jam</option></select></div>
+          <div class="setting-row"><div><strong>Zona waktu</strong><small>Zona waktu untuk deadline dan kalender.</small></div><select><option>Asia/Jakarta (WIB)</option><option>Asia/Makassar (WITA)</option><option>Asia/Jayapura (WIT)</option><option>Otomatis dari perangkat</option></select></div>
+        </div>
+      </div>`;
   }
   contentWrap.innerHTML = `<section class="welcome-row"><div><div class="eyebrow"><span class="eyebrow-line"></span> PROJECTHUB WORKSPACE</div><h1 id="pageTitle">${pageCopy[page][0]}</h1><p class="subheading" id="pageSubtitle">${pageCopy[page][2]}</p></div><button class="primary-button" id="pageAction"><span>＋</span> ${page==="tasks"?"New task":page==="notes"?"New note":page==="resources"?"Add resource":page==="documents"?"New document":page==="calendar"?"New event":"New project"}</button></section>${heading}${body}<footer class="page-footer"><span>© 2026 PROJECTHUB</span><span>One Space. <i>·</i> Satu ruang untuk semua project.</span></footer>`;
   bindPage(page);
@@ -141,24 +157,80 @@ function bindPage(page) {
   if (action) action.addEventListener("click", () => showToast("Form " + action.textContent.trim() + " akan dibuat pada tahap fungsi."));
   const sort = document.getElementById("sortButton");
   if (sort) sort.addEventListener("click", () => showToast("Sort options — UI preview"));
-  if (page === "settings") {
-    const theme = document.getElementById("themeSelect");
-    theme.addEventListener("change", () => {
-      document.documentElement.dataset.theme = theme.value;
-      showToast("Theme " + theme.value + " dipilih (preview).");
-    });
-    document.getElementById("compactToggle").addEventListener("change", e => document.body.classList.toggle("compact-mode", e.target.checked));
-    document.querySelectorAll(".color-choice").forEach(btn => btn.addEventListener("click", () => {
-      document.documentElement.style.setProperty("--blue", btn.dataset.color);
-      document.querySelectorAll(".color-choice").forEach(b => b.classList.remove("chosen"));
-      btn.classList.add("chosen");
-    }));
-  }
+  if (page === "settings") bindSettings();
   if (page === "calendar") document.querySelectorAll(".calendar-switch button").forEach(btn => btn.addEventListener("click", () => {
     document.querySelectorAll(".calendar-switch button").forEach(b => b.classList.remove("selected"));
     btn.classList.add("selected");
   }));
 }
+
+const settingsContent = {
+  general: {title:"Umum",desc:"Bahasa, format tanggal, waktu, dan zona waktu.",html:`
+    <div class="setting-row"><div><strong>Bahasa</strong><small>Bahasa yang digunakan di seluruh PROJECTHUB.</small></div><span class="setting-value">Bahasa Indonesia</span></div>
+    <div class="setting-row"><div><strong>Format tanggal</strong><small>Pilih cara tanggal ditampilkan.</small></div><select><option>DD/MM/YYYY</option><option>DD MMM YYYY</option><option>YYYY-MM-DD</option></select></div>
+    <div class="setting-row"><div><strong>Format waktu</strong><small>Gunakan format 24 atau 12 jam.</small></div><select><option>24 jam</option><option>12 jam</option></select></div>
+    <div class="setting-row"><div><strong>Zona waktu</strong><small>Zona waktu untuk deadline dan kalender.</small></div><select><option>Asia/Jakarta (WIB)</option><option>Asia/Makassar (WITA)</option><option>Asia/Jayapura (WIT)</option><option>Otomatis dari perangkat</option></select></div>`},
+  appearance: {title:"Tampilan",desc:"Semua pengaturan visual dikumpulkan di sini.",html:`
+    <div class="setting-row"><div><strong>Tema</strong><small>Pilih tampilan workspace.</small></div><select id="themeSelect"><option value="light">Terang</option><option value="dark">Gelap</option><option value="system">Ikuti perangkat</option></select></div>
+    <div class="setting-row"><div><strong>Warna aksen</strong><small>Warna tombol dan elemen pilihan.</small></div><div class="color-options"><button class="color-choice chosen" data-color="#5268e8" aria-label="Biru"></button><button class="color-choice mint" data-color="#269d83" aria-label="Hijau"></button><button class="color-choice rose" data-color="#d76d91" aria-label="Merah muda"></button><button class="color-choice amber" data-color="#d99a43" aria-label="Oranye"></button></div></div>
+    <div class="setting-row"><div><strong>Ukuran teks</strong><small>Atur ukuran teks di seluruh workspace.</small></div><select><option>Normal</option><option>Besar</option><option>Sangat besar</option></select></div>
+    <div class="setting-row"><div><strong>Mode ringkas</strong><small>Kurangi jarak antar elemen agar lebih padat.</small></div><label class="toggle"><input type="checkbox" id="compactToggle"><span></span></label></div>
+    <div class="setting-row"><div><strong>Sidebar</strong><small>Tentukan tampilan menu samping.</small></div><select><option>Normal</option><option>Ringkas</option></select></div>`},
+  workspace: {title:"Workspace",desc:"Identitas dan aturan akses ruang kerja bersama.",html:`
+    <div class="setting-row"><div><strong>Nama workspace</strong><small>Nama ruang kerja utama.</small></div><input class="setting-input" value="PROJECTHUB — One Space"></div>
+    <div class="setting-row"><div><strong>Visibilitas konten</strong><small>Semua orang dapat melihat project dan isinya.</small></div><span class="soft-chip public-chip">Public View</span></div>
+    <div class="setting-row"><div><strong>Akses pengelolaan</strong><small>Gunakan satu kode bersama untuk bergabung dan mengelola konten.</small></div><span class="soft-chip">Join Access</span></div>
+    <div class="setting-row setting-note"><div><strong>Akses perangkat</strong><small>Setelah berhasil join, akses pengelolaan tetap tersimpan di browser/perangkat ini. Jika data browser dihapus atau berganti perangkat, perlu join kembali.</small></div></div>
+    <p class="settings-footnote">Pengaturan ini masih berupa pratinjau UI. Validasi kode dan perlindungan perubahan akan dibuat pada tahap backend.</p>`},
+  notifications: {title:"Notifikasi",desc:"Gabungkan semua pemberitahuan dan pengaturan gangguan.",html:`
+    <div class="setting-row"><div><strong>Notifikasi dalam aplikasi</strong><small>Tampilkan aktivitas project di pusat notifikasi.</small></div><label class="toggle"><input type="checkbox" checked><span></span></label></div>
+    <div class="setting-row"><div><strong>Notifikasi browser</strong><small>Izinkan pemberitahuan dari browser.</small></div><label class="toggle"><input type="checkbox"><span></span></label></div>
+    <div class="setting-row"><div><strong>Suara notifikasi</strong><small>Pilih suara untuk pemberitahuan baru.</small></div><select><option>Default</option><option> lembut</option><option>Tanpa suara</option></select></div>
+    <div class="setting-row"><div><strong>Badge jumlah belum dibaca</strong><small>Tampilkan jumlah notifikasi yang belum dibaca.</small></div><label class="toggle"><input type="checkbox" checked><span></span></label></div>
+    <div class="setting-row"><div><strong>Jangan ganggu</strong><small>Jeda notifikasi sementara atau sesuai jadwal.</small></div><label class="toggle"><input type="checkbox"><span></span></label></div>
+    <div class="setting-row"><div><strong>Ringkasan aktivitas</strong><small>Gabungkan aktivitas agar notifikasi tidak menumpuk.</small></div><select><option>Langsung</option><option>Harian</option><option>Mingguan</option></select></div>`},
+  calendar: {title:"Kalender",desc:"Preferensi kalender dan integrasi eksternal dalam satu tempat.",html:`
+    <div class="setting-row"><div><strong>Google Calendar</strong><small>Hubungkan kalender eksternal untuk sinkronisasi dua arah.</small></div><button class="secondary-button" data-preview-action="Integrasi Google Calendar">Hubungkan</button></div>
+    <div class="setting-row"><div><strong>Sinkronisasi otomatis</strong><small>Perbarui event saat ada perubahan.</small></div><label class="toggle"><input type="checkbox" checked><span></span></label></div>
+    <div class="setting-row"><div><strong>Awal minggu</strong><small>Hari pertama pada tampilan kalender.</small></div><select><option>Senin</option><option>Minggu</option></select></div>
+    <div class="setting-row"><div><strong>Hari kerja</strong><small>Hari yang dihitung sebagai hari kerja.</small></div><select><option>Senin–Jumat</option><option>Senin–Sabtu</option><option>Setiap hari</option></select></div>
+    <div class="setting-row"><div><strong>Jika terjadi konflik sinkronisasi</strong><small>Jaga kedua perubahan agar tidak ada data yang hilang.</small></div><select><option>Pertahankan keduanya dan beri peringatan</option><option>Minta konfirmasi</option></select></div>
+    <p class="settings-footnote">Integrasi dan sinkronisasi belum aktif pada prototype ini.</p>`},
+  accessibility: {title:"Aksesibilitas",desc:"Pengaturan kenyamanan membaca dan navigasi.",html:`
+    <div class="setting-row"><div><strong>Kontras tampilan</strong><small>Tingkatkan kontras teks dan elemen antarmuka.</small></div><select><option>Standar</option><option>Tinggi</option></select></div>
+    <div class="setting-row"><div><strong>Ukuran teks</strong><small>Sesuaikan ukuran teks agar lebih mudah dibaca.</small></div><select><option>Normal</option><option>Besar</option><option>Sangat besar</option></select></div>
+    <div class="setting-row"><div><strong>Navigasi keyboard</strong><small>Gunakan Tab, Enter, dan tombol panah untuk navigasi.</small></div><label class="toggle"><input type="checkbox" checked><span></span></label></div>
+    <div class="setting-row"><div><strong>Pintasan keyboard</strong><small>Tampilkan panduan pintasan untuk tindakan umum.</small></div><button class="secondary-button" data-preview-action="Panduan pintasan keyboard">Lihat panduan</button></div>
+    <div class="setting-row"><div><strong>Animasi antarmuka</strong><small>Animasi ringan tetap aktif untuk menjaga respons visual.</small></div><span class="soft-chip">Aktif</span></div>`}
+};
+function bindSettings() {
+  const panel = document.getElementById("settingsPanel");
+  const tabs = document.querySelectorAll("[data-settings-tab]");
+  function showTab(key) {
+    const item = settingsContent[key] || settingsContent.general;
+    tabs.forEach(tab => tab.classList.toggle("selected", tab.dataset.settingsTab === key));
+    panel.innerHTML = `<div class="settings-title"><h2>${item.title}</h2><p>${item.desc}</p></div>${item.html}`;
+    const theme = document.getElementById("themeSelect");
+    if (theme) theme.addEventListener("change", () => {
+      document.documentElement.dataset.theme = theme.value === "system" ? "light" : theme.value;
+      showToast("Tema diperbarui untuk pratinjau.");
+    });
+    document.getElementById("compactToggle")?.addEventListener("change", e => document.body.classList.toggle("compact-mode", e.target.checked));
+    panel.querySelectorAll(".color-choice").forEach(btn => btn.addEventListener("click", () => {
+      document.documentElement.style.setProperty("--blue", btn.dataset.color);
+      panel.querySelectorAll(".color-choice").forEach(b => b.classList.remove("chosen"));
+      btn.classList.add("chosen");
+      showToast("Warna aksen diubah untuk pratinjau.");
+    }));
+    panel.querySelectorAll("[data-preview-action]").forEach(btn => btn.addEventListener("click", () => showToast(btn.dataset.previewAction + " akan tersedia setelah integrasi diaktifkan.")));
+    panel.querySelectorAll("select:not(#themeSelect), input[type='checkbox'], .setting-input").forEach(control => {
+      control.addEventListener("change", () => showToast("Pilihan diperbarui untuk pratinjau."));
+    });
+  }
+  tabs.forEach(tab => tab.addEventListener("click", () => showTab(tab.dataset.settingsTab)));
+  showTab("general");
+}
+
 function applyFilters() {
   const status = document.getElementById("statusFilter")?.value || "";
   const category = document.getElementById("categoryFilter")?.value || "";
