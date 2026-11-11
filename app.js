@@ -179,9 +179,9 @@ const settingsContent = {
   workspace: {title:"Workspace",desc:"Identitas dan aturan akses ruang kerja bersama.",html:`
     <div class="setting-row"><div><strong>Nama workspace</strong><small>Nama ruang kerja utama.</small></div><input class="setting-input" value="PROJECTHUB — One Space"></div>
     <div class="setting-row"><div><strong>Visibilitas konten</strong><small>Semua orang dapat melihat project dan isinya.</small></div><span class="soft-chip public-chip">Public View</span></div>
-    <div class="setting-row"><div><strong>Akses pengelolaan</strong><small>Gunakan satu kode bersama untuk bergabung dan mengelola konten.</small></div><span class="soft-chip">Join Access</span></div>
-    <div class="setting-row setting-note"><div><strong>Akses perangkat</strong><small>Setelah berhasil join, akses pengelolaan tetap tersimpan di browser/perangkat ini. Jika data browser dihapus atau berganti perangkat, perlu join kembali.</small></div></div>
-    <p class="settings-footnote">Pengaturan ini masih berupa pratinjau UI. Validasi kode dan perlindungan perubahan akan dibuat pada tahap backend.</p>`},
+    <div class="setting-row"><div><strong>Akses pengelolaan</strong><small>Gabung sekali untuk mengaktifkan pengelolaan di browser/perangkat ini.</small></div><button class="secondary-button" data-open-join>Join sekarang</button></div>
+    <div class="setting-row setting-note"><div><strong>Status perangkat</strong><small id="joinStatusText">Memeriksa status akses perangkat ini…</small></div><span class="soft-chip" id="joinStatusChip">Memeriksa</span></div>
+    <p class="settings-footnote">Konten dapat dilihat publik. Hanya perangkat yang sudah Join yang dapat mengelola project dan isinya.</p>`},
   notifications: {title:"Notifikasi",desc:"Gabungkan semua pemberitahuan dan pengaturan gangguan.",html:`
     <div class="setting-row"><div><strong>Notifikasi dalam aplikasi</strong><small>Tampilkan aktivitas project di pusat notifikasi.</small></div><label class="toggle"><input type="checkbox" checked><span></span></label></div>
     <div class="setting-row"><div><strong>Notifikasi browser</strong><small>Izinkan pemberitahuan dari browser.</small></div><label class="toggle"><input type="checkbox"><span></span></label></div>
@@ -223,6 +223,7 @@ function bindSettings() {
       showToast("Warna aksen diubah untuk pratinjau.");
     }));
     panel.querySelectorAll("[data-preview-action]").forEach(btn => btn.addEventListener("click", () => showToast(btn.dataset.previewAction + " akan tersedia setelah integrasi diaktifkan.")));
+    bindJoinAccess(panel);
     panel.querySelectorAll("select:not(#themeSelect), input[type='checkbox'], .setting-input").forEach(control => {
       control.addEventListener("change", () => showToast("Pilihan diperbarui untuk pratinjau."));
     });
@@ -275,3 +276,122 @@ navItems.forEach(item => item.addEventListener("click", () => navigate(item.data
 document.getElementById("menuToggle").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
 document.querySelector(".brand").addEventListener("click", e => { e.preventDefault(); navigate("overview"); });
 bindOverview();
+
+
+const PROJECTHUB_ACCESS_URL = "https://mflpyylhzggjwxxplzcz.supabase.co/functions/v1/projecthub-access";
+const PROJECTHUB_ACCESS_STORAGE_KEY = "projecthub_join_token_v1";
+
+function getJoinToken() {
+  try { return localStorage.getItem(PROJECTHUB_ACCESS_STORAGE_KEY) || ""; } catch { return ""; }
+}
+function setJoinToken(token) {
+  try { localStorage.setItem(PROJECTHUB_ACCESS_STORAGE_KEY, token); return true; } catch { return false; }
+}
+function clearJoinToken() {
+  try { localStorage.removeItem(PROJECTHUB_ACCESS_STORAGE_KEY); } catch {}
+}
+async function accessRequest(payload) {
+  const res = await fetch(PROJECTHUB_ACCESS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Layanan akses tidak tersedia.");
+  return data;
+}
+async function checkJoinStatus() {
+  const token = getJoinToken();
+  if (!token) return false;
+  try {
+    const result = await accessRequest({ action: "validate", token });
+    if (!result.authorized) clearJoinToken();
+    return result.authorized === true;
+  } catch {
+    return false;
+  }
+}
+function updateJoinStatus(authorized) {
+  const chip = document.getElementById("joinStatusChip");
+  const text = document.getElementById("joinStatusText");
+  const button = document.querySelector("[data-open-join]");
+  if (chip) {
+    chip.textContent = authorized ? "Akses aktif" : "Belum Join";
+    chip.classList.toggle("public-chip", authorized);
+  }
+  if (text) text.textContent = authorized
+    ? "Perangkat ini sudah memiliki akses pengelolaan. Akses tersimpan meskipun browser ditutup."
+    : "Belum ada akses pengelolaan pada perangkat ini.";
+  if (button) button.textContent = authorized ? "Kelola akses" : "Join sekarang";
+}
+function ensureJoinDialog() {
+  if (document.getElementById("joinAccessDialog")) return;
+  const dialog = document.createElement("div");
+  dialog.id = "joinAccessDialog";
+  dialog.className = "join-dialog";
+  dialog.innerHTML = `
+    <section class="join-dialog-card" role="dialog" aria-modal="true" aria-labelledby="joinDialogTitle">
+      <button type="button" class="join-dialog-close" aria-label="Tutup">×</button>
+      <div class="join-dialog-icon">⌑</div>
+      <p class="eyebrow">PROJECTHUB ACCESS</p>
+      <h2 id="joinDialogTitle">Join workspace</h2>
+      <p class="join-dialog-copy">Masukkan kode akses bersama untuk mengaktifkan pengelolaan di perangkat ini.</p>
+      <form id="joinAccessForm">
+        <label for="joinAccessCode">Kode akses</label>
+        <input id="joinAccessCode" type="password" autocomplete="current-password" maxlength="200" placeholder="Masukkan kode akses" required>
+        <p class="join-dialog-error" id="joinAccessError" role="alert"></p>
+        <button class="primary-button join-submit" type="submit">Join workspace</button>
+      </form>
+      <p class="join-dialog-foot">Akses tersimpan di browser ini sampai kamu keluar atau menghapus data browser.</p>
+    </section>`;
+  dialog.addEventListener("click", e => { if (e.target === dialog) dialog.classList.remove("open"); });
+  dialog.querySelector(".join-dialog-close").addEventListener("click", () => dialog.classList.remove("open"));
+  dialog.querySelector("#joinAccessForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const input = dialog.querySelector("#joinAccessCode");
+    const error = dialog.querySelector("#joinAccessError");
+    const submit = dialog.querySelector(".join-submit");
+    const code = input.value;
+    error.textContent = "";
+    submit.disabled = true;
+    submit.textContent = "Memeriksa…";
+    try {
+      const result = await accessRequest({ action: "join", code });
+      if (!result.ok || !result.token) throw new Error(result.error || "Kode akses tidak valid.");
+      if (!setJoinToken(result.token)) throw new Error("Browser tidak mengizinkan penyimpanan akses. Periksa pengaturan browser.");
+      input.value = "";
+      dialog.classList.remove("open");
+      updateJoinStatus(true);
+      showToast("Berhasil Join. Akses perangkat ini aktif.");
+    } catch (err) {
+      error.textContent = err.message || "Gagal menghubungkan akses.";
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Join workspace";
+    }
+  });
+  document.body.appendChild(dialog);
+}
+function bindJoinAccess(panel) {
+  ensureJoinDialog();
+  panel.querySelector("[data-open-join]")?.addEventListener("click", async () => {
+    const authorized = await checkJoinStatus();
+    updateJoinStatus(authorized);
+    if (authorized) {
+      const confirmed = window.confirm("Akhiri akses pengelolaan pada perangkat ini?");
+      if (confirmed) {
+        clearJoinToken();
+        updateJoinStatus(false);
+        showToast("Akses perangkat ini telah dinonaktifkan.");
+      }
+      return;
+    }
+    const dialog = document.getElementById("joinAccessDialog");
+    dialog.classList.add("open");
+    dialog.querySelector("#joinAccessCode").focus();
+  });
+  checkJoinStatus().then(updateJoinStatus);
+}
+
+initJoinAccess();
