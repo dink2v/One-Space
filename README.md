@@ -1,16 +1,19 @@
 # PROJECTHUB — One Space.
 
-A responsive UI/UX foundation for a personal project workspace.
+A responsive UI/UX prototype for a personal project workspace.
 
-## Current stage
+## Current UI preview
 
-This repository currently contains the front-end dashboard prototype:
-- Responsive desktop, tablet, and mobile layout
-- Workspace sidebar and navigation states
-- Dashboard summary cards
-- Recent project cards and progress indicators
-- Upcoming task list with interactive check states
-- Mini calendar, recent activity, and workspace highlights
+- Responsive dashboard for desktop, tablet, and mobile
+- Sidebar navigation across Overview, Projects, Calendar, Tasks, Resources, Notes, Documentation, Analytics, and Settings
+- Project cards, progress, status/category filters, and search
+- Task table with search and status filtering
+- Resource cards and notes overview
+- Documentation folders and file list
+- Monthly calendar layout and view switcher
+- Analytics overview with progress bars and status chart
+- Appearance settings preview: theme, accent color, compact mode
+- Lightweight interaction feedback and mobile navigation
 
 ## Run locally
 
@@ -18,8 +21,8 @@ Open `index.html` in a browser. No build step or package installation is require
 
 ## GitHub Pages
 
-In the repository settings, enable Pages and select **Deploy from a branch** → **main** → **/(root)**.
+In repository Settings → Pages, select **Deploy from a branch** → **main** → **/(root)** and save.
 
 ## Important
 
-This is currently a UI/UX prototype using sample data. Database integration, shared access-code validation, file uploads, and persistent project management are not implemented yet.
+This stage is a front-end UI/UX prototype using sample data. It does not yet connect to a database, save changes permanently, validate the shared access code, upload files, or synchronize calendar events. Those features will be implemented after the UI/UX is reviewed and approved.
