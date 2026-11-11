@@ -193,8 +193,8 @@ function navigate(page) {
   pageCrumb.textContent = copy[1];
   if (page === "overview") {
     contentWrap.innerHTML = originalOverview;
-    pageTitle.textContent = copy[0];
-    pageSubtitle.textContent = copy[2];
+    document.getElementById("pageTitle").textContent = copy[0];
+    document.getElementById("pageSubtitle").textContent = copy[2];
     bindOverview();
   } else renderPage(page);
   document.getElementById("sidebar").classList.remove("open");
