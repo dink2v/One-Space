@@ -12,7 +12,9 @@ A responsive UI/UX prototype for a personal project workspace.
 - Documentation folders and file list
 - Monthly calendar layout and view switcher
 - Analytics overview with progress bars and status chart
-- Appearance settings preview: theme, accent color, compact mode
+- Consolidated settings: General, Appearance, Workspace, Notifications, Calendar, and Accessibility
+- Grouped preferences to avoid duplicate or overly granular menus
+- Appearance controls and settings navigation preview
 - Lightweight interaction feedback and mobile navigation
 
 ## Run locally
@@ -25,4 +27,4 @@ In repository Settings → Pages, select **Deploy from a branch** → **main** �
 
 ## Important
 
-This stage is a front-end UI/UX prototype using sample data. It does not yet connect to a database, save changes permanently, validate the shared access code, upload files, or synchronize calendar events. Those features will be implemented after the UI/UX is reviewed and approved.
+This stage is a front-end UI/UX prototype using sample data. Settings are grouped by purpose and remain preview-only. It does not yet connect to a database, save changes permanently, validate the shared access code, upload files, or synchronize calendar events. Those features will be implemented after the UI/UX is reviewed and approved.
