@@ -50,7 +50,7 @@ function init(){
  document.addEventListener("click",function(e){
   var edit=e.target.closest("[data-edit-project]");if(edit){e.preventDefault();e.stopImmediatePropagation();openEditor(edit.dataset.editProject);return}
   var add=e.target.closest("#addProject,#pageAction");if(add&&(add.id==="addProject"||$("#allProjects"))){e.preventDefault();e.stopImmediatePropagation();openEditor();return}
-  var project=e.target.closest(".live-project-card");if(project&&!e.target.closest("button")){e.preventDefault();e.stopImmediatePropagation();window.showToast("Project: "+project.dataset.name)}
+  var project=e.target.closest(".live-project-card");if(project&&!e.target.closest("button")){e.preventDefault();e.stopImmediatePropagation();openProjectDetail(project.dataset.id)}
  },true);
  document.addEventListener("click",function(e){if(e.target.closest('.nav-item[data-page="projects"],[data-goto="projects"],.nav-item[data-page="overview"],[data-goto="overview"]'))setTimeout(renderLiveProjects,100)});
  watchSettingsPanel();
@@ -107,6 +107,60 @@ function watchSettingsPanel(){
  var root=document.body;
  new MutationObserver(function(){var panel=$("#settingsPanel");if(panel)attachTaxonomyManager(panel)}).observe(root,{childList:true,subtree:true});
  var panel=$("#settingsPanel");if(panel)attachTaxonomyManager(panel);
+}
+
+
+var activeProject=null,detailResources=[];
+function ensureDetailDialog(){
+ if($("#projectDetailDialog"))return;
+ var n=document.createElement("div");n.id="projectDetailDialog";n.className="project-detail-overlay";
+ n.innerHTML='<section class="project-detail-shell" role="dialog" aria-modal="true" aria-labelledby="projectDetailTitle"><header class="project-detail-head"><div><div class="eyebrow">PROJECT WORKSPACE</div><h2 id="projectDetailTitle">Project detail</h2><p id="projectDetailDescription"></p></div><button type="button" class="project-detail-close" aria-label="Tutup">×</button></header><nav class="project-detail-tabs" aria-label="Project sections"><button class="selected" data-detail-tab="overview">Overview</button><button data-detail-tab="resources">Resources</button><button data-detail-tab="documents">Documentation</button><button data-detail-tab="notes">Notes</button><button data-detail-tab="tasks">Tasks</button><button data-detail-tab="timeline">Timeline</button><button data-detail-tab="attachments">Attachments</button></nav><div class="project-detail-body" id="projectDetailBody"></div></section>';
+ document.body.appendChild(n);n.querySelector(".project-detail-close").addEventListener("click",function(){n.classList.remove("open")});
+ n.querySelectorAll("[data-detail-tab]").forEach(function(b){b.addEventListener("click",function(){n.querySelectorAll("[data-detail-tab]").forEach(function(x){x.classList.toggle("selected",x===b)});renderDetailTab(b.dataset.detailTab)})});
+ n.addEventListener("click",function(e){if(e.target===n)n.classList.remove("open")});
+}
+async function openProjectDetail(id){
+ activeProject=rows.find(function(x){return x.id===id});if(!activeProject)return;
+ ensureDetailDialog();$("#projectDetailTitle").textContent=activeProject.name;$("#projectDetailDescription").textContent=activeProject.description||"Belum ada deskripsi project.";
+ $("#projectDetailDialog").classList.add("open");
+ $("#projectDetailDialog").querySelectorAll("[data-detail-tab]").forEach(function(b){b.classList.toggle("selected",b.dataset.detailTab==="overview")});
+ renderDetailTab("overview");
+}
+function detailOverview(){
+ var p=activeProject,c=label(categories,p.category_id),s=label(statuses,p.status_id),pr=label(priorities,p.priority_id),progress=Math.max(0,Math.min(100,Number(p.progress)||0));
+ return '<div class="detail-overview-grid"><article class="detail-summary-card"><span class="detail-kicker">PROJECT PROGRESS</span><strong class="detail-progress-value">'+progress+'%</strong><div class="progress-track"><span style="width:'+progress+'%"></span></div><p>Progress project saat ini</p></article><article class="detail-info-card"><span class="detail-kicker">INFORMASI PROJECT</span><dl><div><dt>Kategori</dt><dd>'+esc(c)+'</dd></div><div><dt>Status</dt><dd>'+esc(s)+'</dd></div><div><dt>Prioritas</dt><dd>'+esc(pr)+'</dd></div><div><dt>Tanggal mulai</dt><dd>'+esc(dateLabel(p.start_date))+'</dd></div><div><dt>Deadline</dt><dd>'+esc(dateLabel(p.deadline))+'</dd></div></dl></article></div><section class="detail-description-card"><h3>Deskripsi</h3><p>'+esc(p.description||"Belum ada deskripsi untuk project ini.")+'</p><button type="button" class="secondary-button" data-detail-edit>Ubah informasi project</button></section>';
+}
+async function loadDetailResources(){
+ var r=await fetch(URL_BASE+"/rest/v1/project_resources?select=*&project_id=eq."+encodeURIComponent(activeProject.id)+"&order=sort_order.asc,created_at.desc",{headers:headers,cache:"no-store"});
+ if(!r.ok)throw Error("Gagal memuat resources.");detailResources=await r.json();
+}
+function resourcesMarkup(){
+ return '<div class="detail-section-heading"><div><h3>Resources</h3><p>Link, repository, website, database, dan referensi project.</p></div><button class="primary-button" data-add-resource>＋ Tambah resource</button></div><div class="detail-resource-list">'+(detailResources.length?detailResources.map(function(x){return '<article class="detail-resource-row"><span class="detail-resource-icon">'+esc(x.icon||"↗")+'</span><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.resource_type||"other")+(x.group_name?" · "+esc(x.group_name):"")+'</small><p>'+esc(x.description||"")+'</p></div><div class="detail-resource-actions">'+(x.url?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">Buka ↗</a>':"")+'<button type="button" data-delete-resource="'+esc(x.id)+'">Hapus</button></div></article>'}).join(""):'<div class="detail-empty-state"><strong>Belum ada resource</strong><p>Tambahkan link penting agar semua referensi project tersimpan di sini.</p></div>')+'</div><form class="detail-resource-form" id="detailResourceForm" hidden><h4>Resource baru</h4><div class="detail-form-grid"><label>Nama resource<input name="name" required maxlength="120" placeholder="GitHub repository"></label><label>URL<input name="url" type="url" placeholder="https://..."></label><label>Jenis<select name="resource_type"><option value="source_code">Repository / Source code</option><option value="website">Website / Demo</option><option value="hosting">Hosting / Server</option><option value="database">Database</option><option value="design">UI / UX</option><option value="api_docs">API / Documentation</option><option value="cloud_storage">Cloud storage</option><option value="other">Lainnya</option></select></label><label>Grup<input name="group_name" maxlength="60" placeholder="Development"></label></div><label class="detail-full-label">Deskripsi<textarea name="description" rows="2" maxlength="500"></textarea></label><div class="detail-form-actions"><button type="button" class="secondary-button" data-cancel-resource>Batal</button><button type="submit" class="primary-button">Simpan resource</button></div><p class="detail-form-error" id="detailResourceError"></p></form>';
+}
+async function renderDetailTab(tab){
+ var body=$("#projectDetailBody");if(!body||!activeProject)return;
+ if(tab==="overview"){body.innerHTML=detailOverview();var edit=body.querySelector("[data-detail-edit]");edit.addEventListener("click",function(){$("#projectDetailDialog").classList.remove("open");openEditor(activeProject.id)});return}
+ if(tab==="resources"){
+  body.innerHTML='<div class="detail-loading">Memuat resources…</div>';
+  try{await loadDetailResources();body.innerHTML=resourcesMarkup();bindResourceForm(body)}catch(e){body.innerHTML='<div class="detail-empty-state">'+esc(e.message)+'</div>'}return;
+ }
+ var copy={documents:["Documentation","Dokumentasi internal, tautan dokumen, dan riwayat versi."],notes:["Notes","Catatan, ide, dan informasi penting project."],tasks:["Tasks","Daftar pekerjaan, checklist, dan progres pelaksanaan."],timeline:["Timeline","Riwayat perubahan dan aktivitas project."],attachments:["Attachments","File dan lampiran yang berkaitan dengan project."]}[tab];
+ body.innerHTML='<div class="detail-coming-soon"><span>✳</span><h3>'+copy[0]+'</h3><p>'+copy[1]+'</p><small>Bagian ini akan dihubungkan ke database pada tahap berikutnya.</small></div>';
+}
+function bindResourceForm(body){
+ var form=$("#detailResourceForm",body),add=$("[data-add-resource]",body);
+ add.addEventListener("click",function(){form.hidden=false;form.elements.name.focus()});
+ $("[data-cancel-resource]",form).addEventListener("click",function(){form.reset();form.hidden=true});
+ form.addEventListener("submit",async function(e){
+  e.preventDefault();var d=new FormData(form),name=String(d.get("name")||"").trim(),url=String(d.get("url")||"").trim();
+  if(url&&!/^https?:\/\//i.test(url)){ $("#detailResourceError").textContent="URL harus diawali http:// atau https://";return}
+  var payload={project_id:activeProject.id,name:name,url:url||null,resource_type:d.get("resource_type")||"other",group_name:String(d.get("group_name")||"").trim()||null,description:String(d.get("description")||"").trim(),icon:"↗",sort_order:detailResources.length};
+  var submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent="Menyimpan…";
+  try{await window.projecthubWrite("insert","project_resources",payload);await renderDetailTab("resources");window.showToast("Resource berhasil ditambahkan.")}
+  catch(err){$("#detailResourceError").textContent=err.message||"Gagal menyimpan resource."}
+  finally{submit.disabled=false;submit.textContent="Simpan resource"}
+ });
+ body.querySelectorAll("[data-delete-resource]").forEach(function(btn){btn.addEventListener("click",async function(){if(!window.confirm("Hapus resource ini?"))return;try{await window.projecthubWrite("delete","project_resources",null,{id:btn.dataset.deleteResource});await renderDetailTab("resources");window.showToast("Resource dihapus.")}catch(e){window.showToast(e.message||"Gagal menghapus resource.")}})});
 }
 
 })();
