@@ -234,3 +234,18 @@ html[data-theme="dark"] .detail-resource-form input,html[data-theme="dark"] .det
 html[data-theme="dark"] .task-board-column,html[data-theme="dark"] .task-work-card,html[data-theme="dark"] .task-editor-form,html[data-theme="dark"] .task-expanded-detail{background:#202738;border-color:#394257}
 html[data-theme="dark"] .task-editor-form input,html[data-theme="dark"] .task-editor-form textarea,html[data-theme="dark"] .task-editor-form select,html[data-theme="dark"] .task-inline-form input,html[data-theme="dark"] .task-inline-form textarea{background:#252e40;color:#eef1f8;border-color:#394257}
 @media(max-width:700px){.task-work-toolbar{align-items:stretch;flex-direction:column}.task-work-toolbar>input{width:100%;box-sizing:border-box}.task-work-summary{grid-template-columns:repeat(3,minmax(0,1fr))}.task-list-view{grid-template-columns:1fr}.task-expanded-columns{grid-template-columns:1fr}.task-calendar-row{grid-template-columns:1fr;gap:4px}.task-calendar-row>time{padding-top:4px}}
+
+
+.task-calendar-heading{display:flex;justify-content:center;align-items:center;gap:18px;margin:14px 0}
+.task-calendar-heading strong{font:800 14px Manrope;min-width:150px;text-align:center}
+.task-calendar-heading button{width:30px;height:30px;border:1px solid var(--line,#e2e8f0);border-radius:8px;background:var(--surface,#fff);color:inherit;font-size:18px}
+.task-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid var(--line,#e2e8f0);border-left:1px solid var(--line,#e2e8f0);border-radius:10px;overflow:hidden}
+.task-calendar-weekday{padding:9px 4px;text-align:center;font-size:10px;font-weight:750;color:var(--muted,#64748b);background:var(--surface-muted,#f8fafc);border-right:1px solid var(--line,#e2e8f0);border-bottom:1px solid var(--line,#e2e8f0)}
+.task-calendar-cell{min-height:94px;padding:7px;min-width:0;border-right:1px solid var(--line,#e2e8f0);border-bottom:1px solid var(--line,#e2e8f0);background:var(--surface,#fff);display:flex;flex-direction:column;gap:4px}
+.task-calendar-cell>span{font-size:10px;font-weight:700}
+.task-calendar-cell.muted{background:var(--surface-muted,#f8fafc);color:#aab2c0}
+.task-calendar-cell button{min-width:0;border:0;border-radius:5px;background:#eef0ff;color:#4f5fc8;padding:4px 5px;text-align:left;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+html[data-theme="dark"] .task-calendar-cell{background:#202738}
+html[data-theme="dark"] .task-calendar-cell.muted{background:#1a2231}
+html[data-theme="dark"] .task-calendar-cell button{background:#30395b;color:#d2d7ff}
+@media(max-width:600px){.task-calendar-cell{min-height:70px;padding:4px}.task-calendar-cell button{font-size:8px;padding:3px}.task-calendar-weekday{font-size:9px;padding:7px 2px}}
