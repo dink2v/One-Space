@@ -151,7 +151,7 @@ async function renderDetailTab(tab){
 }
 
 
-var taskItems=[],taskView="board",taskEditingId=null,taskActiveDetail=null,taskChecklist=[],taskComments=[];
+var taskItems=[],taskView="board",taskEditingId=null,taskActiveDetail=null,taskChecklist=[],taskComments=[],taskCalendarCursor=new Date(new Date().getFullYear(),new Date().getMonth(),1);
 var TASK_STATUSES=["To Do","In Progress","Review","Done","Cancelled"],TASK_PRIORITIES=["Urgent","High","Medium","Low"];
 function taskWhen(v){return v?new Date(v).toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"Tanpa tanggal"}
 function taskDateInput(v){if(!v)return "";var d=new Date(v);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)}
@@ -167,8 +167,10 @@ function paintTasks(body){
  var target=$("[data-task-content]",body),q=($("[data-task-search]",body).value||"").trim().toLowerCase(),items=taskItems.filter(function(t){return [t.title,t.description,t.status,t.priority].join(" ").toLowerCase().includes(q)});
  if(taskView==="board")target.innerHTML='<div class="task-board">'+TASK_STATUSES.map(function(s){var a=items.filter(function(t){return t.status===s});return '<section class="task-board-column"><header><strong>'+s+'</strong><span>'+a.length+'</span></header><div class="task-board-cards">'+(a.map(taskCard).join("")||'<p class="task-board-empty">Belum ada task</p>')+'</div></section>'}).join("")+'</div>';
  else if(taskView==="calendar"){
-  var dated=items.filter(function(t){return t.due_at}).sort(function(a,b){return new Date(a.due_at)-new Date(b.due_at)});
-  target.innerHTML='<div class="task-calendar-list">'+(dated.length?dated.map(function(t){return '<div class="task-calendar-row"><time>'+esc(taskWhen(t.due_at))+'</time>'+taskCard(t)+'</div>'}).join(""):'<div class="detail-empty-state"><strong>Belum ada deadline</strong><p>Task dengan tenggat akan muncul di sini.</p></div>')+'</div>';
+  var yy=taskCalendarCursor.getFullYear(),mm=taskCalendarCursor.getMonth(),first=new Date(yy,mm,1),offset=(first.getDay()+6)%7,total=Math.ceil((offset+new Date(yy,mm+1,0).getDate())/7)*7;
+  var weekdays=["Sen","Sel","Rab","Kam","Jum","Sab","Min"];
+  var cells=Array.from({length:total},function(_,i){var day=i-offset+1,date=new Date(yy,mm,day),same=date.getMonth()===mm,key=date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0"),dayTasks=items.filter(function(t){return t.due_at&&new Date(t.due_at).getFullYear()===date.getFullYear()&&new Date(t.due_at).getMonth()===date.getMonth()&&new Date(t.due_at).getDate()===date.getDate()});return '<div class="task-calendar-cell '+(same?"":"muted")+'"><span>'+date.getDate()+'</span>'+(dayTasks.map(function(t){return '<button type="button" data-task-open="'+esc(t.id)+'" title="'+esc(t.title)+'">'+esc(t.title)+'</button>'}).join(""))+'</div>'}).join("");
+  target.innerHTML='<div class="task-calendar-heading"><button type="button" data-task-month="-1">‹</button><strong>'+esc(taskCalendarCursor.toLocaleDateString("id-ID",{month:"long",year:"numeric"}))+'</strong><button type="button" data-task-month="1">›</button></div><div class="task-month-grid">'+weekdays.map(function(d){return '<div class="task-calendar-weekday">'+d+'</div>'}).join("")+cells+'</div>';
  }else target.innerHTML='<div class="task-list-view">'+(items.length?items.sort(function(a,b){return new Date(a.due_at||"9999-12-31")-new Date(b.due_at||"9999-12-31")}).map(taskCard).join(""):'<div class="detail-empty-state"><strong>Belum ada task</strong><p>Tambahkan task pertama untuk project ini.</p></div>')+'</div>';
  bindTaskCards(body);
 }
@@ -192,6 +194,7 @@ function bindTaskManager(body){
  body.querySelectorAll("[data-task-cancel]").forEach(function(b){b.addEventListener("click",closeEditor)});
  body.querySelectorAll("[data-task-view]").forEach(function(b){b.addEventListener("click",function(){taskView=b.dataset.taskView;body.querySelectorAll("[data-task-view]").forEach(function(x){x.classList.toggle("active",x===b)});paintTasks(body)})});
  $("[data-task-search]",body).addEventListener("input",function(){paintTasks(body)});
+ body.querySelectorAll("[data-task-month]").forEach(function(b){b.addEventListener("click",function(){taskCalendarCursor.setMonth(taskCalendarCursor.getMonth()+Number(b.dataset.taskMonth));paintTasks(body)})});
  form.addEventListener("submit",async function(e){
   e.preventDefault();var d=new FormData(form),title=String(d.get("title")||"").trim(),err=form.querySelector(".content-editor-error");
   if(!title){err.textContent="Judul task wajib diisi.";return}
