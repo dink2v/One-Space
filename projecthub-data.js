@@ -461,3 +461,79 @@ function bindResourceForm(body){
 }
 
 })();
+
+/* Live dashboard and analytics */
+var dashboardTasks=[],dashboardActivities=[];
+function localISODate(date){var d=date||new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
+function isTaskDone(t){var s=String(t.status||"").toLowerCase().replace(/[ _-]/g,"");return ["done","completed","complete"].includes(s)||!!t.completed_at}
+function prettyDateTime(v){if(!v)return "Tanpa tanggal";var d=new Date(v);if(isNaN(d))return dateLabel(String(v).slice(0,10));return d.toLocaleString("id-ID",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}
+function taskProjectName(t){var p=rows.find(function(x){return x.id===t.project_id});return p?p.name:"Tanpa project"}
+function dashboardStat(labelText,value,sub,icon,tone){return '<article class="stat-card"><div class="stat-top"><span>'+labelText+'</span><span class="stat-icon '+tone+'">'+icon+'</span></div><div class="stat-value">'+value+'</div><div class="stat-foot"><span>'+sub+'</span></div></article>'}
+function renderDashboardLive(){
+ var stats=$(".stats-grid");if(!stats)return;
+ var today=localISODate(),weekEnd=new Date();weekEnd.setDate(weekEnd.getDate()+7);var week=localISODate(weekEnd);
+ var active=rows.filter(function(p){return label(statuses,p.status_id)!=="Completed"}).length;
+ var done=dashboardTasks.filter(isTaskDone).length,openTasks=dashboardTasks.filter(function(t){return !isTaskDone(t)});
+ var dueSoon=rows.filter(function(p){return p.deadline&&p.deadline>=today&&p.deadline<=week}).length+openTasks.filter(function(t){var d=String(t.due_at||"").slice(0,10);return d&&d>=today&&d<=week}).length;
+ var avg=rows.length?Math.round(rows.reduce(function(n,p){return n+Math.max(0,Math.min(100,Number(p.progress)||0))},0)/rows.length):0;
+ stats.innerHTML=dashboardStat("Total projects",rows.length,"Seluruh project aktif","◫","purple")+dashboardStat("In progress",active,"Project belum selesai","◷","blue")+dashboardStat("Tasks completed",done,done+" dari "+dashboardTasks.length+" tugas","✓","green")+dashboardStat("Upcoming deadlines",dueSoon,"Dalam 7 hari ke depan","◷","orange");
+ var taskList=$(".task-list");
+ if(taskList){
+  var upcoming=openTasks.filter(function(t){return t.due_at}).sort(function(a,b){return new Date(a.due_at)-new Date(b.due_at)}).slice(0,5);
+  taskList.innerHTML=upcoming.length?upcoming.map(function(t){var due=String(t.due_at).slice(0,10),overdue=due<today;return '<div class="task-row"><span class="task-check"></span><div class="task-info"><strong>'+esc(t.title||"Untitled task")+'</strong><small>'+esc(taskProjectName(t))+' <i>·</i> '+esc(dateLabel(due))+'</small></div><span class="priority '+esc(String(t.priority||"medium").toLowerCase())+'">'+esc(t.priority||"Medium")+(overdue?' · Terlambat':'')+'</span></div>'}).join(""):'<div class="dashboard-empty">Belum ada tugas mendatang.</div>';
+ }
+ var activity=$(".activity-list");
+ if(activity){
+  activity.innerHTML=dashboardActivities.length?dashboardActivities.slice(0,5).map(function(a){var p=rows.find(function(x){return x.id===a.project_id});var title=a.summary||a.description||a.action||"Aktivitas diperbarui";return '<div class="activity-item"><span class="activity-avatar violet">✳</span><div><strong>'+esc(p?p.name:(a.entity_type||"Workspace"))+'</strong><p>'+esc(title)+'</p><small>'+esc(prettyDateTime(a.created_at))+'</small></div></div>'}).join(""):'<div class="dashboard-empty">Belum ada aktivitas tercatat.</div>';
+ }
+ var progress=$(".dashboard-progress-average");if(progress)progress.textContent=avg+"%";
+}
+async function loadDashboardData(){
+ try{
+  var results=await Promise.all([readTable("tasks","select=id,title,status,priority,due_at,project_id,completed_at&order=due_at.asc"),readTable("activity_log","select=*&order=created_at.desc&limit=8")]);
+  dashboardTasks=results[0]||[];dashboardActivities=results[1]||[];
+  renderDashboardLive();
+ }catch(e){console.warn("Dashboard data:",e);var a=$(".activity-list");if(a)a.innerHTML='<div class="dashboard-empty">Aktivitas belum dapat dimuat.</div>'}
+}
+function analyticsMarkup(){
+ var total=rows.length,avg=total?Math.round(rows.reduce(function(n,p){return n+Math.max(0,Math.min(100,Number(p.progress)||0))},0)/total):0;
+ var done=dashboardTasks.filter(isTaskDone).length,open=dashboardTasks.length-done,rate=dashboardTasks.length?Math.round(done/dashboardTasks.length*100):0;
+ var statusCounts=statuses.map(function(s){return {name:s.name,count:rows.filter(function(p){return p.status_id===s.id}).length,color:s.color||"#64748b"}}).filter(function(x){return x.count>0});
+ var maxStatus=Math.max(1,...statusCounts.map(function(x){return x.count}));
+ var projectBars=rows.slice().sort(function(a,b){return (Number(b.progress)||0)-(Number(a.progress)||0)}).map(function(p){var n=Math.max(0,Math.min(100,Number(p.progress)||0));return '<div class="analytics-project-row"><div class="analytics-project-label"><strong>'+esc(p.name)+'</strong><span>'+n+'%</span></div><div class="progress-track"><span style="width:'+n+'%"></span></div><small>'+esc(label(categories,p.category_id))+' · '+esc(label(statuses,p.status_id))+'</small></div>'}).join("");
+ var statusBars=statusCounts.map(function(x){return '<div class="analytics-status-row"><div><span><i style="background:'+esc(x.color)+'"></i>'+esc(x.name)+'</span><strong>'+x.count+'</strong></div><div class="analytics-status-track"><span style="width:'+(x.count/maxStatus*100)+'%;background:'+esc(x.color)+'"></span></div></div>'}).join("");
+ return '<div class="analytics-live-metrics">'+
+ '<article><span>Total projects</span><strong>'+total+'</strong><small>Project aktif di workspace</small></article>'+
+ '<article><span>Average progress</span><strong>'+avg+'%</strong><small>Rata-rata progres semua project</small></article>'+
+ '<article><span>Tasks completed</span><strong>'+done+' / '+dashboardTasks.length+'</strong><small>'+rate+'% tingkat penyelesaian</small></article>'+
+ '<article><span>Open tasks</span><strong>'+open+'</strong><small>Tugas yang belum selesai</small></article></div>'+
+ '<div class="analytics-live-grid"><section class="panel analytics-live-panel"><header><div><h3>Progress per project</h3><p>Diurutkan dari progres tertinggi</p></div></header>'+
+ (projectBars||'<div class="dashboard-empty">Belum ada data project.</div>')+'</section>'+
+ '<section class="panel analytics-live-panel"><header><div><h3>Status project</h3><p>Distribusi status saat ini</p></div></header>'+
+ (statusBars||'<div class="dashboard-empty">Belum ada data status.</div>')+'</section></div>'+
+ '<section class="panel analytics-live-panel analytics-task-summary"><header><div><h3>Ringkasan tugas</h3><p>Perbandingan tugas selesai dan belum selesai</p></div></header><div class="analytics-task-track"><span style="width:'+rate+'%"></span></div><div class="analytics-task-legend"><span><i class="done"></i>Selesai <strong>'+done+'</strong></span><span><i class="open"></i>Belum selesai <strong>'+open+'</strong></span></div></section>';
+}
+async function loadAnalyticsData(root){
+ root.innerHTML='<div class="analytics-loading">Memuat ringkasan dari database…</div>';
+ try{
+  if(!dashboardTasks.length){var t=await readTable("tasks","select=id,title,status,priority,due_at,project_id,completed_at&order=due_at.asc");dashboardTasks=t||[]}
+  root.innerHTML=analyticsMarkup();
+ }catch(e){root.innerHTML='<div class="dashboard-empty">Analytics gagal dimuat: '+esc(e.message)+'</div>'}
+}
+function observeDashboardAnalytics(){
+ var wrap=$(".content-wrap");if(!wrap)return;
+ var refresh=function(){
+  var title=$("#pageTitle"),name=title?title.textContent.trim():"";
+  if(name==="Good afternoon"||name==="Overview"){
+   var stats=$(".stats-grid");if(stats&&!stats.dataset.liveBound){stats.dataset.liveBound="1";loadDashboardData()}
+  }
+  if(name==="Analytics"){
+   var old=$(".analytics-grid"),metrics=$(".page-metrics"),root=$("#projecthubAnalyticsRoot");
+   if(old&&!root){root=document.createElement("div");root.id="projecthubAnalyticsRoot";old.replaceWith(root);if(metrics)metrics.remove();loadAnalyticsData(root)}
+  }
+ };
+ new MutationObserver(refresh).observe(wrap,{childList:true,subtree:true,characterData:true});
+ refresh();
+ document.addEventListener("click",function(e){if(e.target.closest('.nav-item[data-page="overview"],[data-goto="overview"]'))setTimeout(function(){var s=$(".stats-grid");if(s){delete s.dataset.liveBound;loadDashboardData()}},120)});
+}
+observeDashboardAnalytics();
