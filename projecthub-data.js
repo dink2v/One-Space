@@ -110,7 +110,7 @@ var BACKUP_TABLES=["workspace_settings","project_categories","project_statuses",
 var BACKUP_ORDER=BACKUP_TABLES.slice();
 var backupImportData=null;
 function backupToolsMarkup(){
- return '<section class="backup-tools"><div class="taxonomy-heading"><div><h3>Backup &amp; pemulihan data</h3><p>Cadangkan seluruh data workspace atau pulihkan dari file backup JSON.</p></div></div><div class="backup-tools-grid"><article><div class="backup-tool-icon">↓</div><h4>Export backup</h4><p>Unduh data project, resources, dokumen, catatan, tugas, kalender, dan pengaturan dalam satu file JSON.</p><button type="button" class="secondary-button" data-backup-export>Unduh backup JSON</button></article><article><div class="backup-tool-icon">↑</div><h4>Import / Restore</h4><p>Gabungkan data dari backup. Data yang memiliki ID sama akan dilewati agar data saat ini tidak tertimpa.</p><label class="backup-file-label">Pilih file backup<input type="file" accept=".json,application/json" data-backup-file></label><div class="backup-preview" data-backup-preview>Belum ada file dipilih.</div><button type="button" class="primary-button" data-backup-import disabled>Import data</button></article></div><div class="backup-csv-row"><div><strong>Export CSV</strong><small>Unduh satu tabel sebagai CSV untuk spreadsheet.</small></div><select data-backup-csv-table>'+BACKUP_TABLES.map(function(t){return '<option value="'+t+'">'+t.replace(/_/g," ")+'</option>'}).join("")+'</select><button type="button" class="secondary-button" data-backup-csv>Unduh CSV</button></div><p class="backup-warning"><strong>Catatan file lampiran:</strong> backup JSON menyimpan metadata lampiran, bukan isi file biner di Storage. File asli tetap berada di Supabase Storage dan tidak dihapus saat import.</p><p class="backup-status" data-backup-status role="status"></p></section>';
+ return '<section class="backup-tools"><div class="taxonomy-heading"><div><h3>Backup &amp; pemulihan data</h3><p>Cadangkan seluruh data workspace atau pulihkan dari file backup JSON.</p></div></div><div class="backup-tools-grid"><article><div class="backup-tool-icon">↓</div><h4>Export backup</h4><p>Unduh data project, resources, dokumen, catatan, tugas, kalender, dan pengaturan dalam satu file JSON.</p><button type="button" class="secondary-button" data-backup-export>Unduh backup JSON</button></article><article><div class="backup-tool-icon">↑</div><h4>Import / Restore</h4><p>Gabungkan data dari backup. Data yang memiliki ID sama akan dilewati agar data saat ini tidak tertimpa.</p><label class="backup-file-label">Pilih file backup<input type="file" accept=".json,.csv,application/json,text/csv" data-backup-file></label><label class="backup-csv-import-label">Tabel tujuan CSV<select data-backup-csv-import-table>'+BACKUP_TABLES.map(function(t){return '<option value="'+t+'">'+t.replace(/_/g," ")+'</option>'}).join("")+'</select></label><div class="backup-preview" data-backup-preview>Belum ada file dipilih.</div><button type="button" class="primary-button" data-backup-import disabled>Import data</button></article></div><div class="backup-csv-row"><div><strong>Export CSV</strong><small>Unduh satu tabel sebagai CSV untuk spreadsheet.</small></div><select data-backup-csv-table>'+BACKUP_TABLES.map(function(t){return '<option value="'+t+'">'+t.replace(/_/g," ")+'</option>'}).join("")+'</select><button type="button" class="secondary-button" data-backup-csv>Unduh CSV</button></div><p class="backup-warning"><strong>Catatan file lampiran:</strong> backup JSON menyimpan metadata lampiran, bukan isi file biner di Storage. File asli tetap berada di Supabase Storage dan tidak dihapus saat import.</p><p class="backup-status" data-backup-status role="status"></p></section>';
 }
 function backupDownload(name,content,type){
  var blob=new Blob([content],{type:type||"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1500);
@@ -119,8 +119,28 @@ function csvCell(value){
  var text=typeof value==="object"&&value!==null?JSON.stringify(value):String(value==null?"":value);
  return '"'+text.replace(/"/g,'""')+'"';
 }
+async function readAllRows(table){
+ var all=[],offset=0,pageSize=500;
+ while(true){
+  var response=await fetch(URL_BASE+"/rest/v1/"+table+"?select=*&limit="+pageSize,{headers:Object.assign({},headers,{Range:offset+"-"+(offset+pageSize-1),"Range-Unit":"items"}),cache:"no-store"});
+  if(!response.ok)throw Error("Gagal membaca "+table+" ("+response.status+")");
+  var page=await response.json();all=all.concat(page);if(page.length<pageSize)break;offset+=pageSize;
+ }
+ return all;
+}
+function parseCSV(textValue){
+ var out=[],row=[],cell="",quoted=false;
+ for(var i=0;i<textValue.length;i++){var ch=textValue[i],next=textValue[i+1];
+  if(quoted){if(ch==='"'&&next==='"'){cell+='"';i++}else if(ch==='"')quoted=false;else cell+=ch}
+  else if(ch==='"')quoted=true;else if(ch===","){row.push(cell);cell=""}else if(ch==="\\n"){row.push(cell);out.push(row);row=[];cell=""}else if(ch!=="\\r")cell+=ch;
+ }
+ row.push(cell);if(row.length>1||row[0]!=="")out.push(row);
+ if(!out.length)return [];
+ var keys=out.shift().map(function(k){return k.replace(/^\\ufeff/,"").trim()});
+ return out.filter(function(r){return r.some(function(v){return v!==""})}).map(function(r){var obj={};keys.forEach(function(k,i){var v=r[i]===undefined?"":r[i];if(v==="")obj[k]=null;else if((v[0]==="{"&&v[v.length-1]==="}")||(v[0]==="["&&v[v.length-1]==="]")){try{obj[k]=JSON.parse(v)}catch(_){obj[k]=v}}else obj[k]=v});return obj});
+}
 async function createWorkspaceBackup(){
- var data={};for(var i=0;i<BACKUP_ORDER.length;i++){var table=BACKUP_ORDER[i];data[table]=await readTable(table,"select=*&limit=10000")}
+ var data={};for(var i=0;i<BACKUP_ORDER.length;i++){var table=BACKUP_ORDER[i];data[table]=await readAllRows(table)}
  return {format:"PROJECTHUB_BACKUP",version:1,created_at:new Date().toISOString(),project_id:"mflpyylhzggjwxxplzcz",tables:data};
 }
 function attachBackupTools(panel){
@@ -136,16 +156,25 @@ function attachBackupTools(panel){
  });
  root.querySelector("[data-backup-csv]").addEventListener("click",async function(){
   var btn=this,table=root.querySelector("[data-backup-csv-table]").value;btn.disabled=true;status.textContent="Menyiapkan CSV "+table+"…";
-  try{var rows=await readTable(table,"select=*&limit=10000");var keys=Array.from(new Set(rows.reduce(function(a,r){return a.concat(Object.keys(r))},[])));var csv=[keys.map(csvCell).join(",")].concat(rows.map(function(r){return keys.map(function(k){return csvCell(r[k])}).join(",")})).join("\r\n");backupDownload("projecthub-"+table+"-"+localISODate()+".csv","\ufeff"+csv,"text/csv;charset=utf-8");status.textContent="CSV berhasil diunduh ("+rows.length+" baris)."}
+  try{var rows=await readAllRows(table);var keys=Array.from(new Set(rows.reduce(function(a,r){return a.concat(Object.keys(r))},[])));var csv=[keys.map(csvCell).join(",")].concat(rows.map(function(r){return keys.map(function(k){return csvCell(r[k])}).join(",")})).join("\r\n");backupDownload("projecthub-"+table+"-"+localISODate()+".csv","\ufeff"+csv,"text/csv;charset=utf-8");status.textContent="CSV berhasil diunduh ("+rows.length+" baris)."}
   catch(e){status.textContent="Export CSV gagal: "+e.message}
   finally{btn.disabled=false}
  });
  fileInput.addEventListener("change",async function(){
   backupImportData=null;importBtn.disabled=true;var file=fileInput.files&&fileInput.files[0];if(!file){preview.textContent="Belum ada file dipilih.";return}
   if(file.size>25*1024*1024){preview.textContent="File terlalu besar (maksimal 25 MB).";return}
-  try{var parsed=JSON.parse(await file.text());if(parsed.format!=="PROJECTHUB_BACKUP"||!parsed.tables||typeof parsed.tables!=="object")throw Error("Format backup PROJECTHUB tidak dikenali.");
-   var summary=BACKUP_ORDER.map(function(t){return t+": "+(Array.isArray(parsed.tables[t])?parsed.tables[t].length:0)}).filter(function(x){return !x.endsWith(": 0")});
-   backupImportData=parsed;preview.innerHTML="<strong>Backup valid · v"+esc(parsed.version||"?")+"</strong><br>"+esc(parsed.created_at||"Tanggal tidak diketahui")+"<br>"+summary.map(esc).join("<br>");importBtn.disabled=false;
+  try{
+   var raw=await file.text(),parsed,summary;
+   if(file.name.toLowerCase().endsWith(".csv")){
+    var csvRows=parseCSV(raw),target=root.querySelector("[data-backup-csv-import-table]").value;
+    if(!csvRows.length)throw Error("CSV tidak memiliki baris data.");
+    parsed={format:"PROJECTHUB_BACKUP",version:1,created_at:new Date(file.lastModified||Date.now()).toISOString(),tables:{}};parsed.tables[target]=csvRows;
+    summary=[target+": "+csvRows.length+" baris"];
+   }else{
+    parsed=JSON.parse(raw);if(parsed.format!=="PROJECTHUB_BACKUP"||!parsed.tables||typeof parsed.tables!=="object")throw Error("Format backup PROJECTHUB tidak dikenali.");
+    summary=BACKUP_ORDER.map(function(t){return t+": "+(Array.isArray(parsed.tables[t])?parsed.tables[t].length:0)}).filter(function(x){return !x.endsWith(": 0")});
+   }
+   backupImportData=parsed;preview.innerHTML="<strong>File valid · v"+esc(parsed.version||"?")+"</strong><br>"+esc(parsed.created_at||"Tanggal tidak diketahui")+"<br>"+summary.map(esc).join("<br>");importBtn.disabled=false;
   }catch(e){preview.textContent="File tidak valid: "+e.message}
  });
  importBtn.addEventListener("click",async function(){
@@ -157,7 +186,7 @@ function attachBackupTools(panel){
    for(var ti=0;ti<BACKUP_ORDER.length;ti++){
     var table=BACKUP_ORDER[ti],incoming=backupImportData.tables[table];if(!Array.isArray(incoming)||!incoming.length)continue;
     status.textContent="Memulihkan "+table+" ("+(ti+1)+"/"+BACKUP_ORDER.length+")…";
-    var existing=await readTable(table,"select=*&limit=10000");
+    var existing=await readAllRows(table);
     var idKey=table==="project_tags"?function(r){return r.project_id+"|"+r.tag_id}:function(r){return r.id};
     var seen=new Set(existing.map(idKey));
     var pending=incoming.filter(function(r){var k=idKey(r);if(!k||seen.has(k)){skipped++;return false}seen.add(k);return true});
