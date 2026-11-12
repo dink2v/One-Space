@@ -524,7 +524,7 @@ function observeDashboardAnalytics(){
  var wrap=$(".content-wrap");if(!wrap)return;
  var refresh=function(){
   var title=$("#pageTitle"),name=title?title.textContent.trim():"";
-  if(name==="Good afternoon"||name==="Overview"){
+  if(name.indexOf("Good afternoon")===0||name==="Overview"){
    var stats=$(".stats-grid");if(stats&&!stats.dataset.liveBound){stats.dataset.liveBound="1";loadDashboardData()}
   }
   if(name==="Analytics"){
