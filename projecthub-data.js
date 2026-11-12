@@ -9,7 +9,7 @@ var dateLabel=function(v){return v?new Date(v+"T00:00:00").toLocaleDateString("i
 async function readTable(t,q){var r=await fetch(URL_BASE+"/rest/v1/"+t+"?"+q,{headers:headers,cache:"no-store"});if(!r.ok)throw Error("Gagal membaca "+t+" ("+r.status+")");return r.json()}
 async function loadData(){
  var result=await Promise.all([readTable("projects","select=*&deleted_at=is.null&archived_at=is.null&order=updated_at.desc"),readTable("project_categories","select=id,name,color&order=sort_order.asc"),readTable("project_statuses","select=id,name,color&order=sort_order.asc"),readTable("project_priorities","select=id,name,color&order=sort_order.asc")]);
- rows=result[0];categories=result[1];statuses=result[2];priorities=result[3];renderLiveProjects();
+ rows=result[0];categories=result[1];statuses=result[2];priorities=result[3];renderLiveProjects();if(typeof renderDashboardLive==="function")renderDashboardLive();var analyticsRoot=$("#projecthubAnalyticsRoot");if(analyticsRoot&&typeof analyticsMarkup==="function")analyticsRoot.innerHTML=analyticsMarkup();
 }
 function toneFor(c){return {"Website":"violet","Mobile App":"blue","Desktop App":"violet","School Project":"orange","Design":"pink"}[c]||"blue"}
 function card(p){
