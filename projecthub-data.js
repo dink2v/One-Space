@@ -114,7 +114,7 @@ var activeProject=null,detailResources=[];
 function ensureDetailDialog(){
  if($("#projectDetailDialog"))return;
  var n=document.createElement("div");n.id="projectDetailDialog";n.className="project-detail-overlay";
- n.innerHTML='<section class="project-detail-shell" role="dialog" aria-modal="true" aria-labelledby="projectDetailTitle"><header class="project-detail-head"><div><div class="eyebrow">PROJECT WORKSPACE</div><h2 id="projectDetailTitle">Project detail</h2><p id="projectDetailDescription"></p></div><button type="button" class="project-detail-close" aria-label="Tutup">×</button></header><nav class="project-detail-tabs" aria-label="Project sections"><button class="selected" data-detail-tab="overview">Overview</button><button data-detail-tab="resources">Resources</button><button data-detail-tab="documents">Documentation</button><button data-detail-tab="notes">Notes</button><button data-detail-tab="tasks">Tasks</button><button data-detail-tab="timeline">Timeline</button><button data-detail-tab="attachments">Attachments</button></nav><div class="project-detail-body" id="projectDetailBody"></div></section>';
+ n.innerHTML='<section class="project-detail-shell" role="dialog" aria-modal="true" aria-labelledby="projectDetailTitle"><header class="project-detail-head"><div><div class="eyebrow">PROJECT WORKSPACE</div><h2 id="projectDetailTitle">Project detail</h2><p id="projectDetailDescription"></p></div><button type="button" class="project-detail-close" aria-label="Tutup">×</button></header><nav class="project-detail-tabs" aria-label="Project sections"><button class="selected" data-detail-tab="overview">Overview</button><button data-detail-tab="resources">Resources</button><button data-detail-tab="documents">Documentation</button><button data-detail-tab="notes">Notes</button><button data-detail-tab="tasks">Tasks</button><button data-detail-tab="milestones">Milestones</button><button data-detail-tab="timeline">Timeline</button><button data-detail-tab="attachments">Attachments</button></nav><div class="project-detail-body" id="projectDetailBody"></div></section>';
  document.body.appendChild(n);n.querySelector(".project-detail-close").addEventListener("click",function(){n.classList.remove("open")});
  n.querySelectorAll("[data-detail-tab]").forEach(function(b){b.addEventListener("click",function(){n.querySelectorAll("[data-detail-tab]").forEach(function(x){x.classList.toggle("selected",x===b)});renderDetailTab(b.dataset.detailTab)})});
  n.addEventListener("click",function(e){if(e.target===n)n.classList.remove("open")});
@@ -146,6 +146,7 @@ async function renderDetailTab(tab){
  }
  if(tab==="documents"||tab==="notes"){await renderContentManager(tab);return}
  if(tab==="tasks"){await renderTasksManager();return}
+ if(tab==="milestones"){await renderMilestonesManager();return}
  if(tab==="timeline"){await renderTimelineManager();return}
  if(tab==="attachments"){await renderAttachmentsManager();return}
  var copy={}[tab];
@@ -153,6 +154,92 @@ async function renderDetailTab(tab){
 }
 
 
+
+
+var milestoneItems=[],milestoneEditingId=null;
+function milestoneMarkup(){
+ return '<div class="detail-section-heading"><div><h3>Milestones</h3><p>Titik pencapaian penting project.</p></div><button class="primary-button" data-ms-add>＋ Tambah milestone</button></div><div class="milestone-list">'+(milestoneItems.length?milestoneItems.map(function(m){return '<article class="milestone-card"><div class="milestone-card-top"><div><span class="milestone-status '+esc(m.status)+'">'+esc(({upcoming:"Akan datang",in_progress:"Berjalan",blocked:"Terhambat",completed:"Selesai"})[m.status]||m.status)+'</span><h4>'+esc(m.title)+'</h4></div><time>'+esc(m.due_at?contentDate(m.due_at):"Tanpa tanggal")+'</time></div><p>'+esc(m.description||"")+'</p><div class="milestone-progress"><div><span>Progress</span><strong>'+Number(m.progress||0)+'%</strong></div><div class="progress-track"><span style="width:'+Number(m.progress||0)+'%"></span></div></div><div class="milestone-actions"><button data-ms-edit="'+esc(m.id)+'">Edit</button><button class="danger-text" data-ms-del="'+esc(m.id)+'">Hapus</button></div></article>'}).join(""):'<div class="detail-empty-state"><strong>Belum ada milestone</strong><p>Tambahkan target pencapaian penting project ini.</p></div>')+'</div><form class="milestone-editor-form" data-ms-form hidden><div class="content-editor-heading"><h4 data-ms-heading>Tambah milestone</h4><button type="button" data-ms-cancel>×</button></div><label>Nama milestone<input name="title" required maxlength="150"></label><label>Deskripsi<textarea name="description" rows="3" maxlength="2000"></textarea></label><div class="content-editor-grid"><label>Target tanggal<input name="due_at" type="date"></label><label>Status<select name="status"><option value="upcoming">Akan datang</option><option value="in_progress">Berjalan</option><option value="blocked">Terhambat</option><option value="completed">Selesai</option></select></label><label>Progress (%)<input name="progress" type="number" min="0" max="100" value="0"></label><label>Prasyarat<select name="depends_on"><option value="">Tidak ada</option>'+milestoneItems.map(function(m){return '<option value="'+esc(m.id)+'">'+esc(m.title)+'</option>'}).join("")+'</select></label></div><p class="content-editor-error" role="alert"></p><div class="detail-form-actions"><button type="button" class="secondary-button" data-ms-cancel>Batal</button><button type="submit" class="primary-button">Simpan milestone</button></div></form>';
+}
+async function renderMilestonesManager(){
+ var body=$("#projectDetailBody");body.innerHTML='<div class="detail-loading">Memuat milestones…</div>';
+ try{milestoneItems=await readTable("milestones","select=*&project_id=eq."+encodeURIComponent(activeProject.id)+"&order=due_at.asc.nullslast");body.innerHTML=milestoneMarkup();bindMilestones(body)}
+ catch(e){body.innerHTML='<div class="detail-empty-state">'+esc(e.message||"Gagal memuat milestones.")+'</div>'}
+}
+function bindMilestones(body){
+ var f=$("[data-ms-form]",body);
+ function edit(id){var m=milestoneItems.find(function(x){return x.id===id});milestoneEditingId=id||null;f.reset();f.hidden=false;f.elements.title.value=m?m.title:"";f.elements.description.value=m?m.description||"":"";
+ f.elements.due_at.value=m&&m.due_at?new Date(m.due_at).toISOString().slice(0,10):"";f.elements.status.value=m?m.status:"upcoming";f.elements.progress.value=m?m.progress:0;f.elements.depends_on.value=m?m.depends_on||"":"";
+ $("[data-ms-heading]",f).textContent=m?"Edit milestone":"Tambah milestone";f.querySelector(".content-editor-error").textContent="";f.scrollIntoView({behavior:"smooth",block:"nearest"})}
+ function close(){milestoneEditingId=null;f.reset();f.hidden=true}
+ $("[data-ms-add]",body).addEventListener("click",function(){edit(null)});
+ body.querySelectorAll("[data-ms-edit]").forEach(function(b){b.addEventListener("click",function(){edit(b.dataset.msEdit)})});
+ body.querySelectorAll("[data-ms-cancel]").forEach(function(b){b.addEventListener("click",close)});
+ body.querySelectorAll("[data-ms-del]").forEach(function(b){b.addEventListener("click",async function(){if(!confirm("Hapus milestone ini?"))return;try{await window.projecthubWrite("delete","milestones",null,{id:b.dataset.msDel});await renderMilestonesManager();window.showToast("Milestone dihapus.")}catch(e){window.showToast(e.message)}})});
+ f.addEventListener("submit",async function(e){e.preventDefault();var d=new FormData(f),status=d.get("status"),dep=d.get("depends_on")||null,err=f.querySelector(".content-editor-error");
+ if(dep===milestoneEditingId){err.textContent="Milestone tidak bisa bergantung pada dirinya sendiri.";return}
+ var payload={title:String(d.get("title")||"").trim(),description:String(d.get("description")||"").trim(),due_at:d.get("due_at")?new Date(d.get("due_at")+"T12:00:00").toISOString():null,status:status,progress:status==="completed"?100:Math.max(0,Math.min(100,Number(d.get("progress"))||0)),depends_on:dep};
+ var b=f.querySelector('[type="submit"]');b.disabled=true;err.textContent="";
+ try{if(milestoneEditingId)await window.projecthubWrite("update","milestones",payload,{id:milestoneEditingId});else{payload.project_id=activeProject.id;await window.projecthubWrite("insert","milestones",payload)}await renderMilestonesManager();window.showToast("Milestone tersimpan.")}
+ catch(x){err.textContent=x.message||"Gagal menyimpan milestone."}finally{b.disabled=false}
+ });
+}
+var calRows=[],calProjects=[],calView="month",calCursor=new Date(),calSelected=new Date(),calProject="",calType="";
+function isoDay(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function dateOf(v){var d=new Date(v);return isNaN(d)?null:d}
+function buildCalendarRows(ps,ts,ms,es){
+ var a=[];ps.forEach(function(p){if(p.deadline)a.push({id:"p"+p.id,type:"deadline",title:p.name+" · Deadline",date:p.deadline,project_id:p.id,project:p.name,color:"#e59a3a"})});
+ ts.forEach(function(t){if(t.due_at){var p=ps.find(function(x){return x.id===t.project_id});a.push({id:"t"+t.id,type:"task",title:t.title,date:isoDay(dateOf(t.due_at)),project_id:t.project_id,project:p?p.name:"Project",color:"#6477db"})}});
+ ms.forEach(function(m){if(m.due_at){var p=ps.find(function(x){return x.id===m.project_id});a.push({id:"m"+m.id,type:"milestone",title:m.title,date:isoDay(dateOf(m.due_at)),project_id:m.project_id,project:p?p.name:"Project",color:"#16a37a"})}});
+ es.forEach(function(e){var p=ps.find(function(x){return x.id===e.project_id});a.push({id:"e"+e.id,type:"event",title:e.title,date:isoDay(dateOf(e.start_at)),project_id:e.project_id,project:p?p.name:"Umum",color:e.color||"#8b6bd6",time:dateOf(e.start_at)})});
+ return a;
+}
+function calendarMarkup(){
+ var y=calCursor.getFullYear(),m=calCursor.getMonth(),start=new Date(calSelected),count=42;
+ if(calView==="month"){start=new Date(y,m,1);start.setDate(1-((start.getDay()+6)%7))}
+ if(calView==="week"){start.setDate(start.getDate()-((start.getDay()+6)%7));count=7}
+ if(calView==="day")count=1;
+ var cells=calView==="month"?["Sen","Sel","Rab","Kam","Jum","Sab","Min"].map(function(x){return '<div class="hub-cal-weekday">'+x+'</div>'}).join(""):"";
+ for(var i=0;i<count;i++){var d=new Date(start);d.setDate(start.getDate()+i);var iso=isoDay(d),list=calRows.filter(function(x){return x.date===iso&&(!calProject||x.project_id===calProject)&&(!calType||x.type===calType)});
+ cells+='<button class="hub-cal-cell '+(calView==="month"&&d.getMonth()!==m?"outside":"")+' '+(iso===isoDay(calSelected)?"selected":"")+'" data-cal-date="'+iso+'"><span class="hub-cal-day">'+d.getDate()+'</span>'+list.slice(0,calView==="day"?20:2).map(function(x){return '<span class="hub-cal-event" title="'+esc(x.title)+'"><i style="background:'+x.color+'"></i>'+esc(x.title)+'</span>'}).join("")+(list.length>2&&calView==="month"?'<small>+'+(list.length-2)+' lainnya</small>':"")+'</button>'}
+ var title=calView==="month"?calCursor.toLocaleDateString("id-ID",{month:"long",year:"numeric"}):calView==="week"?"Minggu "+start.toLocaleDateString("id-ID",{day:"numeric",month:"short"})+" – "+new Date(start.getFullYear(),start.getMonth(),start.getDate()+6).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}):calSelected.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+ var agenda=calRows.filter(function(x){return x.date===isoDay(calSelected)&&(!calProject||x.project_id===calProject)&&(!calType||x.type===calType)}).sort(function(a,b){return (a.time||new Date(a.date)).getTime()-(b.time||new Date(b.date)).getTime()});
+ return '<div class="hub-calendar-toolbar"><div class="hub-calendar-views"><button data-cal-view="month" class="'+(calView==="month"?"active":"")+'">Bulan</button><button data-cal-view="week" class="'+(calView==="week"?"active":"")+'">Minggu</button><button data-cal-view="day" class="'+(calView==="day"?"active":"")+'">Hari</button></div><div class="hub-calendar-nav"><button data-cal-move="-1">‹</button><strong>'+esc(title)+'</strong><button data-cal-move="1">›</button><button data-cal-today>Hari ini</button></div><button class="primary-button" data-cal-add>＋ Event</button></div><div class="hub-calendar-filters"><select data-cal-project><option value="">Semua project</option>'+calProjects.map(function(p){return '<option value="'+esc(p.id)+'" '+(p.id===calProject?"selected":"")+'>'+esc(p.name)+'</option>'}).join("")+'</select><select data-cal-type><option value="">Semua jenis</option><option value="deadline" '+(calType==="deadline"?"selected":"")+'>Deadline project</option><option value="task" '+(calType==="task"?"selected":"")+'>Task</option><option value="milestone" '+(calType==="milestone"?"selected":"")+'>Milestone</option><option value="event" '+(calType==="event"?"selected":"")+'>Event</option></select><input type="search" data-cal-search placeholder="Cari jadwal…"></div><div class="hub-calendar-grid '+(calView==="month"?"month":"")+'">'+cells+'</div><section class="hub-calendar-agenda"><div class="hub-calendar-agenda-head"><div><h3>Agenda tanggal terpilih</h3><p>'+esc(calSelected.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))+'</p></div><span>'+agenda.length+' jadwal</span></div><div class="hub-calendar-event-list">'+(agenda.length?agenda.map(function(x){return '<article class="hub-calendar-event-row"><i style="background:'+x.color+'"></i><div><strong>'+esc(x.title)+'</strong><small>'+esc(({deadline:"Deadline project",task:"Task",milestone:"Milestone",event:"Event"})[x.type])+' · '+esc(x.project)+(x.time?" · "+x.time.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}):"")+'</small></div>'+(x.type==="event"?'<button data-cal-delete="'+esc(x.id.slice(1))+'">Hapus</button>':x.type==="task"||x.type==="milestone"?'<button data-cal-open="'+esc(x.project_id)+'" data-cal-tab="'+(x.type==="task"?"tasks":"milestones")+'">Buka</button>':"")+'</article>'}).join(""):'<div class="detail-empty-state">Tidak ada jadwal pada tanggal ini.</div>')+'</div></section><form class="hub-calendar-event-form" data-cal-form hidden><div class="content-editor-heading"><h3>Tambah event</h3><button type="button" data-cal-cancel>×</button></div><div class="content-editor-grid"><label>Nama event<input name="title" required maxlength="160"></label><label>Project<select name="project_id"><option value="">Event umum</option>'+calProjects.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>'}).join("")+'</select></label><label>Mulai<input name="start_at" type="datetime-local" required value="'+isoDay(calSelected)+'T09:00"></label><label>Selesai<input name="end_at" type="datetime-local"></label><label>Jenis<input name="event_type" value="event" maxlength="40"></label><label>Lokasi<input name="location" maxlength="200"></label></div><label>Deskripsi<textarea name="description" rows="3"></textarea></label><p class="content-editor-error" role="alert"></p><div class="detail-form-actions"><button type="button" class="secondary-button" data-cal-cancel>Batal</button><button type="submit" class="primary-button">Simpan event</button></div></form>';
+}
+async function renderCalendarPage(){
+ var root=$("#projecthubCalendarRoot");if(!root)return;root.innerHTML='<div class="detail-loading">Memuat kalender…</div>';
+ try{var r=await Promise.all([readTable("projects","select=id,name,deadline,archived_at,deleted_at"),readTable("tasks","select=id,project_id,title,due_at"),readTable("milestones","select=id,project_id,title,due_at"),readTable("calendar_events","select=*")]);
+ calProjects=r[0].filter(function(p){return !p.deleted_at&&!p.archived_at});calRows=buildCalendarRows(calProjects,r[1],r[2],r[3]);root.innerHTML=calendarMarkup();bindCalendar(root)}
+ catch(e){root.innerHTML='<div class="detail-empty-state">'+esc(e.message||"Gagal memuat kalender.")+'</div>'}
+}
+function bindCalendar(root){
+ root.querySelectorAll("[data-cal-view]").forEach(function(b){b.addEventListener("click",function(){calView=b.dataset.calView;root.innerHTML=calendarMarkup();bindCalendar(root)})});
+ root.querySelectorAll("[data-cal-move]").forEach(function(b){b.addEventListener("click",function(){var n=Number(b.dataset.calMove);if(calView==="month")calCursor.setMonth(calCursor.getMonth()+n);else calSelected.setDate(calSelected.getDate()+n*(calView==="week"?7:1));if(calView!=="day")calCursor=new Date(calSelected.getFullYear(),calSelected.getMonth(),1);root.innerHTML=calendarMarkup();bindCalendar(root)})});
+ $("[data-cal-today]",root).addEventListener("click",function(){calSelected=new Date();calCursor=new Date();root.innerHTML=calendarMarkup();bindCalendar(root)});
+ root.querySelectorAll("[data-cal-date]").forEach(function(b){b.addEventListener("click",function(){calSelected=new Date(b.dataset.calDate+"T12:00:00");root.innerHTML=calendarMarkup();bindCalendar(root)})});
+ $("[data-cal-project]",root).addEventListener("change",function(e){calProject=e.target.value;root.innerHTML=calendarMarkup();bindCalendar(root)});
+ $("[data-cal-type]",root).addEventListener("change",function(e){calType=e.target.value;root.innerHTML=calendarMarkup();bindCalendar(root)});
+ $("[data-cal-search]",root).addEventListener("input",function(e){var q=e.target.value.toLowerCase();root.querySelectorAll(".hub-calendar-event-row").forEach(function(x){x.hidden=!x.textContent.toLowerCase().includes(q)})});
+ $("[data-cal-add]",root).addEventListener("click",function(){$("[data-cal-form]",root).hidden=false});
+ root.querySelectorAll("[data-cal-cancel]").forEach(function(b){b.addEventListener("click",function(){$("[data-cal-form]",root).hidden=true})});
+ var form=$("[data-cal-form]",root);form.addEventListener("submit",async function(e){e.preventDefault();var d=new FormData(form),start=d.get("start_at"),end=d.get("end_at"),err=form.querySelector(".content-editor-error");
+ if(end&&new Date(end)<new Date(start)){err.textContent="Waktu selesai tidak boleh sebelum waktu mulai.";return}
+ var payload={title:String(d.get("title")||"").trim(),project_id:d.get("project_id")||null,description:String(d.get("description")||"").trim(),event_type:String(d.get("event_type")||"event").trim()||"event",start_at:new Date(start).toISOString(),end_at:end?new Date(end).toISOString():null,location:String(d.get("location")||"").trim()||null,all_day:false};
+ var b=form.querySelector('[type="submit"]');b.disabled=true;err.textContent="";
+ try{await window.projecthubWrite("insert","calendar_events",payload);calSelected=new Date(start);await renderCalendarPage();window.showToast("Event tersimpan.")}
+ catch(x){err.textContent=x.message||"Gagal menyimpan event."}finally{b.disabled=false}
+ });
+ root.querySelectorAll("[data-cal-delete]").forEach(function(b){b.addEventListener("click",async function(){if(!confirm("Hapus event ini?"))return;try{await window.projecthubWrite("delete","calendar_events",null,{id:b.dataset.calDelete});await renderCalendarPage();window.showToast("Event dihapus.")}catch(e){window.showToast(e.message)}})});
+ root.querySelectorAll("[data-cal-open]").forEach(function(b){b.addEventListener("click",function(){openProjectDetail(b.dataset.calOpen);setTimeout(function(){var t=$('[data-detail-tab="'+b.dataset.calTab+'"]');if(t)t.click()},80)})});
+}
+function observeCalendarPage(){
+ var root=document.querySelector(".content-wrap");if(!root)return;
+ new MutationObserver(function(){var title=$("#pageTitle");if(title&&title.textContent.trim()==="Calendar"&&!$("#projecthubCalendarRoot")){
+ var old=root.querySelector(".calendar-toolbar"),grid=root.querySelector(".full-calendar");if(old)old.remove();if(grid)grid.remove();
+ var anchor=root.querySelector(".page-section-heading");if(anchor)anchor.insertAdjacentHTML("afterend",'<div id="projecthubCalendarRoot"></div>');
+ var action=$("#pageAction");if(action)action.style.display="none";renderCalendarPage();
+ }else if(title&&title.textContent.trim()!=="Calendar"){var action=$("#pageAction");if(action)action.style.display=""}}).observe(root,{childList:true,subtree:true});
+}
+observeCalendarPage();
 
 var timelineItems=[],attachmentItems=[];
 function timelineMarkup(){
