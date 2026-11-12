@@ -146,10 +146,67 @@ async function renderDetailTab(tab){
  }
  if(tab==="documents"||tab==="notes"){await renderContentManager(tab);return}
  if(tab==="tasks"){await renderTasksManager();return}
- var copy={timeline:["Timeline","Riwayat perubahan dan aktivitas project."],attachments:["Attachments","File dan lampiran yang berkaitan dengan project."]}[tab];
+ if(tab==="timeline"){await renderTimelineManager();return}
+ if(tab==="attachments"){await renderAttachmentsManager();return}
+ var copy={}[tab];
  body.innerHTML='<div class="detail-coming-soon"><span>✳</span><h3>'+copy[0]+'</h3><p>'+copy[1]+'</p><small>Bagian ini akan dihubungkan ke database pada tahap berikutnya.</small></div>';
 }
 
+
+
+var timelineItems=[],attachmentItems=[];
+function timelineMarkup(){
+ var list=timelineItems;
+ return '<div class="detail-section-heading"><div><h3>Timeline</h3><p>Riwayat otomatis perubahan dan aktivitas project.</p></div><span class="timeline-total">'+list.length+' aktivitas</span></div><div class="timeline-toolbar"><input type="search" data-timeline-search placeholder="Cari aktivitas…"><select data-timeline-filter><option value="">Semua aktivitas</option><option value="project">Project</option><option value="task">Task</option><option value="note">Notes</option><option value="document">Documentation</option><option value="resource">Resources</option><option value="attachment">Attachments</option><option value="milestone">Milestones</option><option value="calendar_event">Calendar</option></select></div><div class="timeline-feed">'+(list.length?list.map(function(x){return '<article class="timeline-entry" data-entity="'+esc(x.entity_type)+'"><span class="timeline-dot"></span><div class="timeline-entry-main"><div class="timeline-entry-top"><strong>'+esc(x.summary)+'</strong><time>'+esc(contentDate(x.created_at))+'</time></div><p>'+esc(x.action==="insert"?"Item ditambahkan":x.action==="update"?"Item diperbarui":x.action==="delete"?"Item dihapus":x.action)+'</p></div></article>'}).join(""):'<div class="detail-empty-state"><strong>Belum ada aktivitas</strong><p>Perubahan project akan tercatat otomatis di sini.</p></div>')+'</div>';
+}
+async function renderTimelineManager(){
+ var body=$("#projectDetailBody");body.innerHTML='<div class="detail-loading">Memuat timeline…</div>';
+ try{timelineItems=await readTable("activity_log","select=*&project_id=eq."+encodeURIComponent(activeProject.id)+"&order=created_at.desc&limit=250");body.innerHTML=timelineMarkup();bindTimeline(body)}
+ catch(e){body.innerHTML='<div class="detail-empty-state">'+esc(e.message||"Gagal memuat timeline.")+'</div>'}
+}
+function bindTimeline(body){
+ var search=$("[data-timeline-search]",body),filter=$("[data-timeline-filter]",body);
+ function apply(){var q=search.value.trim().toLowerCase(),kind=filter.value;body.querySelectorAll(".timeline-entry").forEach(function(el){el.hidden=!(el.textContent.toLowerCase().includes(q)&&(!kind||el.dataset.entity===kind))})}
+ search.addEventListener("input",apply);filter.addEventListener("change",apply);
+}
+function attachmentPublicUrl(path){return URL_BASE+"/storage/v1/object/public/projecthub-files/"+path.split("/").map(encodeURIComponent).join("/")}
+function fileSize(n){if(n<1024)return n+" B";if(n<1048576)return (n/1024).toFixed(1)+" KB";return (n/1048576).toFixed(1)+" MB"}
+function attachmentMarkup(){
+ return '<div class="detail-section-heading"><div><h3>Attachments</h3><p>File project tersimpan di Supabase Storage.</p></div><button class="primary-button" type="button" data-attachment-add>＋ Upload file</button></div><div class="attachment-toolbar"><input type="search" data-attachment-search placeholder="Cari nama file atau folder…"><span>'+attachmentItems.length+' file</span></div><div class="attachment-upload-panel" data-attachment-panel hidden><form data-attachment-form><label>Pilih file<input type="file" name="file" required accept="image/*,.pdf,.txt,.zip,.docx,.xlsx,.pptx"></label><div class="content-editor-grid"><label>Folder<input name="folder" maxlength="100" placeholder="Contoh: Design / Final"></label><label>Deskripsi<input name="description" maxlength="2000" placeholder="Keterangan file"></label></div><small>Maksimal 50 MB per file. File yang diunggah dapat dilihat publik sesuai pengaturan workspace.</small><p class="content-editor-error" data-attachment-error role="alert"></p><div class="detail-form-actions"><button type="button" class="secondary-button" data-attachment-cancel>Batal</button><button type="submit" class="primary-button">Upload</button></div></form></div><div class="attachment-list">'+(attachmentItems.length?attachmentItems.map(function(x){var ext=(x.file_name.split(".").pop()||"FILE").toUpperCase().slice(0,5);return '<article class="attachment-card" data-attachment-id="'+esc(x.id)+'"><div class="attachment-file-icon">'+esc(ext)+'</div><div class="attachment-file-info"><strong>'+esc(x.file_name)+'</strong><span>'+esc(x.folder||"Tanpa folder")+' · '+fileSize(Number(x.file_size)||0)+' · '+esc(contentDate(x.created_at))+'</span>'+(x.description?'<p>'+esc(x.description)+'</p>':"")+'</div><div class="attachment-file-actions"><a href="'+esc(attachmentPublicUrl(x.storage_path))+'?download='+encodeURIComponent(x.file_name)+'" target="_blank" rel="noopener">Unduh</a><button type="button" data-attachment-delete="'+esc(x.id)+'">Hapus</button></div></article>'}).join(""):'<div class="detail-empty-state"><strong>Belum ada lampiran</strong><p>Upload file project pertama untuk mulai mengumpulkan aset.</p></div>')+'</div>';
+}
+async function renderAttachmentsManager(){
+ var body=$("#projectDetailBody");body.innerHTML='<div class="detail-loading">Memuat lampiran…</div>';
+ try{attachmentItems=await readTable("attachments","select=*&project_id=eq."+encodeURIComponent(activeProject.id)+"&order=created_at.desc");body.innerHTML=attachmentMarkup();bindAttachments(body)}
+ catch(e){body.innerHTML='<div class="detail-empty-state">'+esc(e.message||"Gagal memuat lampiran.")+'</div>'}
+}
+function bindAttachments(body){
+ var panel=$("[data-attachment-panel]",body),form=$("[data-attachment-form]",body);
+ $("[data-attachment-add]",body).addEventListener("click",function(){panel.hidden=false});
+ $("[data-attachment-cancel]",body).addEventListener("click",function(){form.reset();panel.hidden=true;form.querySelector("[data-attachment-error]").textContent=""});
+ $("[data-attachment-search]",body).addEventListener("input",function(e){var q=e.target.value.toLowerCase().trim();body.querySelectorAll(".attachment-card").forEach(function(card){var item=attachmentItems.find(function(x){return x.id===card.dataset.attachmentId});card.hidden=![item.file_name,item.folder,item.description].join(" ").toLowerCase().includes(q)})});
+ form.addEventListener("submit",async function(e){
+  e.preventDefault();var file=form.elements.file.files[0],error=form.querySelector("[data-attachment-error]");if(!file)return;
+  var allowed=/\.(pdf|txt|zip|docx|xlsx|pptx)$/i.test(file.name)||file.type.startsWith("image/");
+  if(!allowed){error.textContent="Format file belum didukung.";return}
+  if(file.size>50*1024*1024){error.textContent="Ukuran maksimal file adalah 50 MB.";return}
+  var token=typeof getJoinToken==="function"?getJoinToken():localStorage.getItem("projecthub_join_token_v1");
+  if(!token){error.textContent="Perangkat ini belum Join. Gabung dulu melalui Settings.";return}
+  var btn=form.querySelector('[type="submit"]');btn.disabled=true;btn.textContent="Mengunggah…";error.textContent="";
+  try{
+   var data=new FormData();data.append("token",token);data.append("project_id",activeProject.id);data.append("file",file);data.append("folder",String(form.elements.folder.value||""));data.append("description",String(form.elements.description.value||""));
+   var response=await fetch(URL_BASE+"/functions/v1/projecthub-write",{method:"POST",body:data,cache:"no-store"});
+   var result=await response.json().catch(function(){return {}});if(!response.ok||!result.ok)throw Error(result.error||"Upload gagal.");
+   await renderAttachmentsManager();window.showToast("File berhasil diunggah.");
+  }catch(err){error.textContent=err.message||"Upload gagal."}
+  finally{btn.disabled=false;btn.textContent="Upload"}
+ });
+ body.querySelectorAll("[data-attachment-delete]").forEach(function(b){b.addEventListener("click",async function(){
+  if(!confirm("Hapus file ini secara permanen dari Storage?"))return;
+  var token=typeof getJoinToken==="function"?getJoinToken():localStorage.getItem("projecthub_join_token_v1");
+  try{var response=await fetch(URL_BASE+"/functions/v1/projecthub-write",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:token,action:"delete_attachment",attachment_id:b.dataset.attachmentDelete})});var result=await response.json().catch(function(){return {}});if(!response.ok||!result.ok)throw Error(result.error||"Gagal menghapus file.");await renderAttachmentsManager();window.showToast("File dihapus.")}
+  catch(e){window.showToast(e.message||"Gagal menghapus file.")}
+ })});
+}
 
 var taskItems=[],taskView="board",taskEditingId=null,taskActiveDetail=null,taskChecklist=[],taskComments=[],taskCalendarCursor=new Date(new Date().getFullYear(),new Date().getMonth(),1);
 var TASK_STATUSES=["To Do","In Progress","Review","Done","Cancelled"],TASK_PRIORITIES=["Urgent","High","Medium","Low"];
