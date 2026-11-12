@@ -145,8 +145,82 @@ async function renderDetailTab(tab){
   try{await loadDetailResources();body.innerHTML=resourcesMarkup();bindResourceForm(body)}catch(e){body.innerHTML='<div class="detail-empty-state">'+esc(e.message)+'</div>'}return;
  }
  if(tab==="documents"||tab==="notes"){await renderContentManager(tab);return}
- var copy={tasks:["Tasks","Daftar pekerjaan, checklist, dan progres pelaksanaan."],timeline:["Timeline","Riwayat perubahan dan aktivitas project."],attachments:["Attachments","File dan lampiran yang berkaitan dengan project."]}[tab];
+ if(tab==="tasks"){await renderTasksManager();return}
+ var copy={timeline:["Timeline","Riwayat perubahan dan aktivitas project."],attachments:["Attachments","File dan lampiran yang berkaitan dengan project."]}[tab];
  body.innerHTML='<div class="detail-coming-soon"><span>✳</span><h3>'+copy[0]+'</h3><p>'+copy[1]+'</p><small>Bagian ini akan dihubungkan ke database pada tahap berikutnya.</small></div>';
+}
+
+
+var taskItems=[],taskView="board",taskEditingId=null,taskActiveDetail=null,taskChecklist=[],taskComments=[];
+var TASK_STATUSES=["To Do","In Progress","Review","Done","Cancelled"],TASK_PRIORITIES=["Urgent","High","Medium","Low"];
+function taskWhen(v){return v?new Date(v).toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"Tanpa tanggal"}
+function taskDateInput(v){if(!v)return "";var d=new Date(v);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)}
+function taskMarkup(){
+ var count=TASK_STATUSES.reduce(function(a,s){a[s]=taskItems.filter(function(t){return t.status===s}).length;return a},{});
+ return '<div class="detail-section-heading"><div><h3>Tasks</h3><p>Atur pekerjaan, tenggat, checklist, dan catatan tugas project ini.</p></div><button class="primary-button" data-task-add>＋ Tambah task</button></div><div class="task-work-toolbar"><div class="task-view-switch"><button type="button" data-task-view="board" class="'+(taskView==="board"?"active":"")+'">Board</button><button type="button" data-task-view="list" class="'+(taskView==="list"?"active":"")+'">List</button><button type="button" data-task-view="calendar" class="'+(taskView==="calendar"?"active":"")+'">Calendar</button></div><input type="search" data-task-search placeholder="Cari task…"></div><div class="task-work-summary">'+TASK_STATUSES.map(function(s){return '<div><strong>'+count[s]+'</strong><span>'+s+'</span></div>'}).join("")+'</div><div class="task-work-content" data-task-content></div><form class="task-editor-form" id="taskEditorForm" hidden><div class="content-editor-heading"><h4 data-task-editor-title>Tambah task</h4><button type="button" class="content-editor-close" data-task-cancel aria-label="Tutup">×</button></div><label>Judul task<input name="title" maxlength="180" required placeholder="Apa yang perlu dikerjakan?"></label><label>Deskripsi<textarea name="description" rows="3" maxlength="3000" placeholder="Detail pekerjaan…"></textarea></label><div class="content-editor-grid"><label>Status<select name="status">'+TASK_STATUSES.map(function(s){return '<option>'+s+'</option>'}).join("")+'</select></label><label>Prioritas<select name="priority"><option value="">Tanpa prioritas</option>'+TASK_PRIORITIES.map(function(s){return '<option>'+s+'</option>'}).join("")+'</select></label><label>Mulai<input type="datetime-local" name="start_at"></label><label>Deadline<input type="datetime-local" name="due_at"></label></div><p class="content-editor-error" role="alert"></p><div class="detail-form-actions"><button type="button" class="secondary-button" data-task-cancel>Batal</button><button type="submit" class="primary-button">Simpan task</button></div></form><section class="task-expanded-detail" data-task-expanded hidden></section>';
+}
+function taskCard(t){
+ var late=t.due_at&&new Date(t.due_at)<new Date()&&t.status!=="Done"&&t.status!=="Cancelled";
+ return '<article class="task-work-card" data-task-id="'+esc(t.id)+'"><div class="task-card-top"><span class="task-status-label status-'+t.status.toLowerCase().replace(/[^a-z]+/g,"-")+'">'+esc(t.status)+'</span><span class="task-priority-label">'+esc(t.priority||"Normal")+'</span></div><h4>'+esc(t.title)+'</h4><p>'+esc(t.description||"")+'</p><div class="task-card-meta"><span class="'+(late?"task-overdue":"")+'">◷ '+esc(taskWhen(t.due_at))+'</span><button type="button" data-task-open="'+esc(t.id)+'">Detail / checklist</button></div><div class="task-card-actions"><button type="button" data-task-edit="'+esc(t.id)+'">Edit</button><button type="button" data-task-delete="'+esc(t.id)+'">Hapus</button></div></article>';
+}
+function paintTasks(body){
+ var target=$("[data-task-content]",body),q=($("[data-task-search]",body).value||"").trim().toLowerCase(),items=taskItems.filter(function(t){return [t.title,t.description,t.status,t.priority].join(" ").toLowerCase().includes(q)});
+ if(taskView==="board")target.innerHTML='<div class="task-board">'+TASK_STATUSES.map(function(s){var a=items.filter(function(t){return t.status===s});return '<section class="task-board-column"><header><strong>'+s+'</strong><span>'+a.length+'</span></header><div class="task-board-cards">'+(a.map(taskCard).join("")||'<p class="task-board-empty">Belum ada task</p>')+'</div></section>'}).join("")+'</div>';
+ else if(taskView==="calendar"){
+  var dated=items.filter(function(t){return t.due_at}).sort(function(a,b){return new Date(a.due_at)-new Date(b.due_at)});
+  target.innerHTML='<div class="task-calendar-list">'+(dated.length?dated.map(function(t){return '<div class="task-calendar-row"><time>'+esc(taskWhen(t.due_at))+'</time>'+taskCard(t)+'</div>'}).join(""):'<div class="detail-empty-state"><strong>Belum ada deadline</strong><p>Task dengan tenggat akan muncul di sini.</p></div>')+'</div>';
+ }else target.innerHTML='<div class="task-list-view">'+(items.length?items.sort(function(a,b){return new Date(a.due_at||"9999-12-31")-new Date(b.due_at||"9999-12-31")}).map(taskCard).join(""):'<div class="detail-empty-state"><strong>Belum ada task</strong><p>Tambahkan task pertama untuk project ini.</p></div>')+'</div>';
+ bindTaskCards(body);
+}
+async function renderTasksManager(){
+ var body=$("#projectDetailBody");body.innerHTML='<div class="detail-loading">Memuat tasks…</div>';
+ try{taskItems=await readTable("tasks","select=*&project_id=eq."+encodeURIComponent(activeProject.id)+"&order=sort_order.asc,created_at.desc");body.innerHTML=taskMarkup();bindTaskManager(body);paintTasks(body)}
+ catch(e){body.innerHTML='<div class="detail-empty-state">'+esc(e.message||"Gagal memuat tasks.")+'</div>'}
+}
+function bindTaskManager(body){
+ var form=$("#taskEditorForm",body),detail=$("[data-task-expanded]",body);
+ function closeEditor(){taskEditingId=null;form.reset();form.hidden=true;form.querySelector(".content-editor-error").textContent=""}
+ function openEditor(id){
+  var t=taskItems.find(function(x){return x.id===id});taskEditingId=id||null;form.reset();form.hidden=false;
+  form.elements.title.value=t?t.title:"";form.elements.description.value=t?t.description||"":"";
+  form.elements.status.value=t?t.status:"To Do";form.elements.priority.value=t?t.priority||"":"";
+  form.elements.start_at.value=t?taskDateInput(t.start_at):"";form.elements.due_at.value=t?taskDateInput(t.due_at):"";
+  $("[data-task-editor-title]",form).textContent=(t?"Edit ":"Tambah ")+"task";form.querySelector(".content-editor-error").textContent="";
+  form.scrollIntoView({behavior:"smooth",block:"nearest"});form.elements.title.focus();
+ }
+ $("[data-task-add]",body).addEventListener("click",function(){openEditor(null)});
+ body.querySelectorAll("[data-task-cancel]").forEach(function(b){b.addEventListener("click",closeEditor)});
+ body.querySelectorAll("[data-task-view]").forEach(function(b){b.addEventListener("click",function(){taskView=b.dataset.taskView;body.querySelectorAll("[data-task-view]").forEach(function(x){x.classList.toggle("active",x===b)});paintTasks(body)})});
+ $("[data-task-search]",body).addEventListener("input",function(){paintTasks(body)});
+ form.addEventListener("submit",async function(e){
+  e.preventDefault();var d=new FormData(form),title=String(d.get("title")||"").trim(),err=form.querySelector(".content-editor-error");
+  if(!title){err.textContent="Judul task wajib diisi.";return}
+  var start=d.get("start_at"),due=d.get("due_at");
+  if(start&&due&&new Date(due)<new Date(start)){err.textContent="Deadline tidak boleh lebih awal dari waktu mulai.";return}
+  var status=String(d.get("status")),payload={title:title,description:String(d.get("description")||"").trim(),status:status,priority:d.get("priority")||null,start_at:start?new Date(start).toISOString():null,due_at:due?new Date(due).toISOString():null,completed_at:status==="Done"?(taskItems.find(function(t){return t.id===taskEditingId})||{}).completed_at||new Date().toISOString():null};
+  var btn=form.querySelector('[type="submit"]');btn.disabled=true;err.textContent="";
+  try{if(taskEditingId)await window.projecthubWrite("update","tasks",payload,{id:taskEditingId});else{payload.project_id=activeProject.id;payload.sort_order=taskItems.length;await window.projecthubWrite("insert","tasks",payload)}await renderTasksManager();window.showToast("Task tersimpan.")}
+  catch(x){err.textContent=x.message||"Gagal menyimpan task."}
+  finally{btn.disabled=false}
+ });
+}
+function bindTaskCards(body){
+ body.querySelectorAll("[data-task-edit]").forEach(function(b){b.addEventListener("click",function(){var t=taskItems.find(function(x){return x.id===b.dataset.taskEdit});if(!t)return;var f=$("#taskEditorForm",body);f.hidden=false;f.elements.title.value=t.title;f.elements.description.value=t.description||"";f.elements.status.value=t.status;f.elements.priority.value=t.priority||"";f.elements.start_at.value=taskDateInput(t.start_at);f.elements.due_at.value=taskDateInput(t.due_at);taskEditingId=t.id;$("[data-task-editor-title]",f).textContent="Edit task";f.scrollIntoView({behavior:"smooth",block:"nearest"})})});
+ body.querySelectorAll("[data-task-delete]").forEach(function(b){b.addEventListener("click",async function(){if(!confirm("Hapus task ini beserta checklist dan komentarnya?"))return;var id=b.closest("[data-task-id]").dataset.taskId;try{var [cl,cm]=await Promise.all([readTable("task_checklist_items","select=id&task_id=eq."+id),readTable("task_comments","select=id&task_id=eq."+id)]);for(var x of cl)await window.projecthubWrite("delete","task_checklist_items",null,{id:x.id});for(var y of cm)await window.projecthubWrite("delete","task_comments",null,{id:y.id});await window.projecthubWrite("delete","tasks",null,{id:id});await renderTasksManager();window.showToast("Task dihapus.")}catch(e){window.showToast(e.message||"Gagal menghapus task.")}})});
+ body.querySelectorAll("[data-task-open]").forEach(function(b){b.addEventListener("click",function(){openTaskDetail(b.dataset.taskOpen,body)})});
+}
+async function openTaskDetail(id,body){
+ taskActiveDetail=id;var t=taskItems.find(function(x){return x.id===id});if(!t)return;var box=$("[data-task-expanded]",body);box.hidden=false;box.innerHTML='<div class="detail-loading">Memuat checklist dan komentar…</div>';
+ try{
+  var r=await Promise.all([readTable("task_checklist_items","select=*&task_id=eq."+id+"&order=sort_order.asc"),readTable("task_comments","select=*&task_id=eq."+id+"&order=created_at.asc")]);taskChecklist=r[0];taskComments=r[1];
+  box.innerHTML='<div class="task-expanded-head"><div><span class="detail-kicker">TASK DETAIL</span><h4>'+esc(t.title)+'</h4></div><button type="button" data-task-detail-close>×</button></div><div class="task-expanded-columns"><section><h5>Checklist ('+taskChecklist.filter(function(x){return x.is_completed}).length+'/'+taskChecklist.length+')</h5><div class="task-checklist">'+(taskChecklist.map(function(x){return '<label><input type="checkbox" data-check-id="'+esc(x.id)+'" '+(x.is_completed?"checked":"")+'><span>'+esc(x.title)+'</span><button type="button" data-check-delete="'+esc(x.id)+'" aria-label="Hapus checklist">×</button></label>'}).join("")||'<p class="task-board-empty">Belum ada checklist.</p>')+'</div><form data-check-add class="task-inline-form"><input name="title" required maxlength="180" placeholder="Tambah item checklist"><button class="primary-button">Tambah</button></form></section><section><h5>Komentar ('+taskComments.length+')</h5><div class="task-comments">'+(taskComments.map(function(x){return '<p>'+esc(x.content)+'<small>'+esc(taskWhen(x.created_at))+'</small></p>'}).join("")||'<p class="task-board-empty">Belum ada komentar.</p>')+'</div><form data-comment-add class="task-inline-form"><textarea name="content" required maxlength="2000" rows="2" placeholder="Tulis komentar…"></textarea><button class="primary-button">Kirim</button></form></section></div>';
+  $("[data-task-detail-close]",box).addEventListener("click",function(){box.hidden=true;taskActiveDetail=null});
+  box.querySelectorAll("[data-check-id]").forEach(function(input){input.addEventListener("change",async function(){try{await window.projecthubWrite("update","task_checklist_items",{is_completed:input.checked},{id:input.dataset.checkId});await openTaskDetail(id,body)}catch(e){input.checked=!input.checked;window.showToast(e.message)}})});
+  box.querySelectorAll("[data-check-delete]").forEach(function(b){b.addEventListener("click",async function(){try{await window.projecthubWrite("delete","task_checklist_items",null,{id:b.dataset.checkDelete});await openTaskDetail(id,body)}catch(e){window.showToast(e.message)}})});
+  $("[data-check-add]",box).addEventListener("submit",async function(e){e.preventDefault();var title=e.currentTarget.elements.title.value.trim();if(!title)return;try{await window.projecthubWrite("insert","task_checklist_items",{task_id:id,title:title,sort_order:taskChecklist.length});await openTaskDetail(id,body)}catch(x){window.showToast(x.message||"Gagal menambah checklist.")}});
+  $("[data-comment-add]",box).addEventListener("submit",async function(e){e.preventDefault();var content=e.currentTarget.elements.content.value.trim();if(!content)return;try{await window.projecthubWrite("insert","task_comments",{task_id:id,content:content});await openTaskDetail(id,body)}catch(x){window.showToast(x.message||"Gagal mengirim komentar.")}});
+  box.scrollIntoView({behavior:"smooth",block:"nearest"});
+ }catch(e){box.innerHTML='<div class="detail-empty-state">'+esc(e.message||"Gagal memuat detail task.")+'</div>'}
 }
 
 var contentItems=[],contentTab="documents",editingContentId=null;
