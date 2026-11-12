@@ -132,11 +132,11 @@ function parseCSV(textValue){
  var out=[],row=[],cell="",quoted=false;
  for(var i=0;i<textValue.length;i++){var ch=textValue[i],next=textValue[i+1];
   if(quoted){if(ch==='"'&&next==='"'){cell+='"';i++}else if(ch==='"')quoted=false;else cell+=ch}
-  else if(ch==='"')quoted=true;else if(ch===","){row.push(cell);cell=""}else if(ch==="\\n"){row.push(cell);out.push(row);row=[];cell=""}else if(ch!=="\\r")cell+=ch;
+  else if(ch==='"')quoted=true;else if(ch===","){row.push(cell);cell=""}else if(ch==="\n"){row.push(cell);out.push(row);row=[];cell=""}else if(ch!=="\r")cell+=ch;
  }
  row.push(cell);if(row.length>1||row[0]!=="")out.push(row);
  if(!out.length)return [];
- var keys=out.shift().map(function(k){return k.replace(/^\\ufeff/,"").trim()});
+ var keys=out.shift().map(function(k){return k.replace(/^\ufeff/,"").trim()});
  return out.filter(function(r){return r.some(function(v){return v!==""})}).map(function(r){var obj={};keys.forEach(function(k,i){var v=r[i]===undefined?"":r[i];if(v==="")obj[k]=null;else if((v[0]==="{"&&v[v.length-1]==="}")||(v[0]==="["&&v[v.length-1]==="]")){try{obj[k]=JSON.parse(v)}catch(_){obj[k]=v}}else obj[k]=v});return obj});
 }
 async function createWorkspaceBackup(){
