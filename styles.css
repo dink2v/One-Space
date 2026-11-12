@@ -404,3 +404,6 @@ html[data-theme="dark"] .analytics-live-metrics article{background:#202738;borde
 .backup-tools .taxonomy-heading p{font-size:11px;color:var(--muted,#64748b);margin-top:4px}
 html[data-theme="dark"] .backup-tools-grid>article{background:#202738;border-color:#394257}
 @media(max-width:650px){.backup-tools-grid{grid-template-columns:1fr}.backup-tools-grid p{min-height:0}.backup-csv-row{flex-wrap:wrap}.backup-csv-row>div{flex-basis:100%}.backup-csv-row select{flex:1;max-width:none}}
+
+.backup-csv-import-label{display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:10px;font-weight:700}
+.backup-csv-import-label select{max-width:100%;font-size:11px}
