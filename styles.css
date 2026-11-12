@@ -289,3 +289,58 @@ html[data-theme="dark"] .task-calendar-cell button{background:#30395b;color:#d2d
 html[data-theme="dark"] .timeline-entry-main,html[data-theme="dark"] .attachment-card,html[data-theme="dark"] .attachment-upload-panel{background:#202738;border-color:#394257}
 html[data-theme="dark"] .timeline-toolbar input,html[data-theme="dark"] .timeline-toolbar select,html[data-theme="dark"] .attachment-toolbar input,html[data-theme="dark"] .attachment-upload-panel input{background:#252e40;color:#eef1f8;border-color:#394257}
 @media(max-width:650px){.timeline-toolbar,.attachment-toolbar{align-items:stretch;flex-direction:column}.timeline-toolbar input,.attachment-toolbar input{width:100%;box-sizing:border-box}.timeline-entry-top{flex-direction:column;gap:4px}.attachment-card{align-items:flex-start;flex-wrap:wrap}.attachment-file-info{width:calc(100% - 58px)}.attachment-file-actions{margin-left:55px}}
+
+
+/* Calendar and milestone workspace */
+.milestone-list{display:grid;gap:12px;margin-top:16px}
+.milestone-card{padding:16px;border:1px solid var(--line,#e2e8f0);border-radius:13px;background:var(--surface,#fff)}
+.milestone-card-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.milestone-card h4{font:800 14px Manrope;margin:8px 0 0}
+.milestone-card time{font-size:10px;color:var(--muted,#64748b);white-space:nowrap}
+.milestone-card>p{font-size:11px;color:var(--muted,#64748b);line-height:1.6}
+.milestone-status{display:inline-flex;padding:4px 8px;border-radius:20px;font-size:9px;font-weight:750;background:#eef2ff;color:#5965c8}
+.milestone-status.completed{background:#e7f8ef;color:#15834e}.milestone-status.blocked{background:#fff0e9;color:#c15a2c}.milestone-status.in_progress{background:#e9f4ff;color:#2563a8}
+.milestone-progress>div:first-child{display:flex;justify-content:space-between;font-size:10px;color:var(--muted,#64748b);margin-bottom:6px}
+.milestone-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:12px}
+.milestone-actions button{border:0;background:none;color:var(--accent,#5865df);font-size:11px;cursor:pointer}
+.milestone-actions .danger-text{color:#dc2626}
+.milestone-editor-form,.hub-calendar-event-form{display:grid;gap:12px;margin-top:18px;padding:17px;border:1px solid var(--line,#cbd5e1);border-radius:13px;background:var(--surface,#fff)}
+.milestone-editor-form[hidden],.hub-calendar-event-form[hidden]{display:none}
+.milestone-editor-form label,.hub-calendar-event-form label{display:grid;gap:6px;font-size:11px;font-weight:650;color:var(--muted,#64748b)}
+.milestone-editor-form input,.milestone-editor-form textarea,.milestone-editor-form select,.hub-calendar-event-form input,.hub-calendar-event-form textarea,.hub-calendar-event-form select{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line,#e2e8f0);border-radius:8px;background:var(--surface,#fff);color:inherit;font:inherit;font-size:12px}
+.hub-calendar-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0}
+.hub-calendar-views{display:flex;gap:4px;padding:4px;border-radius:10px;background:var(--surface-muted,#f1f5f9)}
+.hub-calendar-views button,.hub-calendar-nav button{border:0;border-radius:7px;padding:8px 11px;background:transparent;color:inherit;font-size:11px;cursor:pointer}
+.hub-calendar-views button.active{background:var(--surface,#fff);box-shadow:0 1px 4px #00000012;color:var(--accent,#5865df);font-weight:750}
+.hub-calendar-nav{display:flex;align-items:center;gap:7px;min-width:0}
+.hub-calendar-nav strong{font:800 13px Manrope;min-width:160px;text-align:center}
+.hub-calendar-nav button{border:1px solid var(--line,#e2e8f0);background:var(--surface,#fff)}
+.hub-calendar-filters{display:flex;gap:9px;margin:12px 0}
+.hub-calendar-filters select,.hub-calendar-filters input{min-width:0;padding:9px 11px;border:1px solid var(--line,#e2e8f0);border-radius:9px;background:var(--surface,#fff);color:inherit;font:inherit;font-size:11px}
+.hub-calendar-filters input{flex:1}
+.hub-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid var(--line,#e2e8f0);border-left:1px solid var(--line,#e2e8f0);border-radius:12px;overflow:hidden}
+.hub-cal-weekday{padding:10px 4px;text-align:center;background:var(--surface-muted,#f8fafc);border-right:1px solid var(--line,#e2e8f0);border-bottom:1px solid var(--line,#e2e8f0);font-size:10px;font-weight:750;color:var(--muted,#64748b)}
+.hub-cal-cell{min-width:0;min-height:100px;padding:7px;border:0;border-right:1px solid var(--line,#e2e8f0);border-bottom:1px solid var(--line,#e2e8f0);background:var(--surface,#fff);text-align:left;display:flex;flex-direction:column;align-items:stretch;gap:4px;cursor:pointer}
+.hub-cal-cell.outside{background:var(--surface-muted,#f8fafc);color:#aab2c0}
+.hub-cal-cell.selected{box-shadow:inset 0 0 0 2px var(--accent,#5865df)}
+.hub-cal-day{font-size:10px;font-weight:750}
+.hub-cal-event{display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 4px;border-radius:4px;background:var(--surface-muted,#f1f5f9);font-size:9px;color:var(--text,#334155)}
+.hub-cal-event i{width:6px;height:6px;flex:none;border-radius:50%}
+.hub-cal-cell>small{font-size:8px;color:var(--muted,#64748b)}
+.hub-calendar-grid:not(.month){grid-template-columns:repeat(7,minmax(0,1fr))}
+.hub-calendar-grid:not(.month) .hub-cal-cell{min-height:160px}
+.hub-calendar-grid:not(.month) .hub-cal-cell:only-child{grid-column:1/-1;min-height:190px}
+.hub-calendar-agenda{margin-top:18px;padding:16px;border:1px solid var(--line,#e2e8f0);border-radius:13px;background:var(--surface,#fff)}
+.hub-calendar-agenda-head{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.hub-calendar-agenda-head h3{font:800 14px Manrope;margin:0}.hub-calendar-agenda-head p{font-size:10px;color:var(--muted,#64748b);margin:4px 0 0}.hub-calendar-agenda-head>span{font-size:10px;color:var(--muted,#64748b)}
+.hub-calendar-event-list{display:grid;gap:8px;margin-top:12px}
+.hub-calendar-event-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:9px;background:var(--surface-muted,#f8fafc)}
+.hub-calendar-event-row[hidden]{display:none}
+.hub-calendar-event-row>i{width:4px;height:32px;border-radius:5px;flex:none}
+.hub-calendar-event-row>div{flex:1;min-width:0}.hub-calendar-event-row strong,.hub-calendar-event-row small{display:block;overflow-wrap:anywhere}.hub-calendar-event-row strong{font-size:11px}.hub-calendar-event-row small{font-size:9px;color:var(--muted,#64748b);margin-top:4px}
+.hub-calendar-event-row button{border:0;background:transparent;color:var(--accent,#5865df);font-size:10px;cursor:pointer}
+html[data-theme="dark"] .milestone-card,html[data-theme="dark"] .milestone-editor-form,html[data-theme="dark"] .hub-calendar-event-form,html[data-theme="dark"] .hub-calendar-agenda{background:#202738;border-color:#394257}
+html[data-theme="dark"] .milestone-editor-form input,html[data-theme="dark"] .milestone-editor-form textarea,html[data-theme="dark"] .milestone-editor-form select,html[data-theme="dark"] .hub-calendar-event-form input,html[data-theme="dark"] .hub-calendar-event-form textarea,html[data-theme="dark"] .hub-calendar-event-form select,html[data-theme="dark"] .hub-calendar-filters select,html[data-theme="dark"] .hub-calendar-filters input{background:#252e40;color:#eef1f8;border-color:#394257}
+html[data-theme="dark"] .hub-cal-cell,html[data-theme="dark"] .hub-calendar-nav button{background:#202738;color:#eef1f8}
+html[data-theme="dark"] .hub-cal-cell.outside{background:#1a2231}
+@media(max-width:700px){.hub-calendar-toolbar{align-items:stretch}.hub-calendar-nav{order:3;width:100%;justify-content:center}.hub-calendar-filters{flex-direction:column}.hub-cal-cell{min-height:72px;padding:4px}.hub-cal-event{font-size:8px}.hub-calendar-grid:not(.month){grid-template-columns:1fr}.hub-calendar-grid:not(.month) .hub-cal-cell{min-height:70px}.hub-calendar-grid:not(.month) .hub-cal-cell:only-child{grid-column:auto}.hub-cal-weekday{font-size:9px}.milestone-card-top{flex-direction:column;gap:6px}}
