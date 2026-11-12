@@ -249,3 +249,43 @@ html[data-theme="dark"] .task-calendar-cell{background:#202738}
 html[data-theme="dark"] .task-calendar-cell.muted{background:#1a2231}
 html[data-theme="dark"] .task-calendar-cell button{background:#30395b;color:#d2d7ff}
 @media(max-width:600px){.task-calendar-cell{min-height:70px;padding:4px}.task-calendar-cell button{font-size:8px;padding:3px}.task-calendar-weekday{font-size:9px;padding:7px 2px}}
+
+
+/* Project timeline and attachments */
+.timeline-toolbar,.attachment-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:16px 0;color:var(--muted,#64748b);font-size:12px}
+.timeline-toolbar input,.timeline-toolbar select,.attachment-toolbar input{min-width:0;padding:10px 12px;border:1px solid var(--line,#e2e8f0);border-radius:9px;background:var(--surface,#fff);color:inherit;font:inherit}
+.timeline-toolbar input,.attachment-toolbar input{width:min(360px,100%)}
+.timeline-total{font-size:11px;color:var(--muted,#64748b)}
+.timeline-feed{position:relative;display:grid;gap:0;padding:5px 0 5px 22px}
+.timeline-feed:before{content:"";position:absolute;left:7px;top:10px;bottom:12px;width:1px;background:var(--line,#e2e8f0)}
+.timeline-entry{position:relative;padding:0 0 20px 12px;min-width:0}
+.timeline-entry[hidden]{display:none}
+.timeline-dot{position:absolute;left:-19px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--accent,#5865df);border:2px solid var(--surface,#fff);box-shadow:0 0 0 1px var(--accent,#5865df)}
+.timeline-entry-main{padding:12px 14px;border:1px solid var(--line,#e2e8f0);border-radius:11px;background:var(--surface,#fff)}
+.timeline-entry-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.timeline-entry-top strong{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.timeline-entry-top time{flex:none;font-size:10px;color:var(--muted,#64748b)}
+.timeline-entry-main p{font-size:10px;color:var(--muted,#64748b);margin:5px 0 0}
+.attachment-toolbar>span{flex:none}
+.attachment-upload-panel{padding:16px;border:1px solid var(--line,#cbd5e1);border-radius:13px;background:var(--surface,#fff);margin:14px 0}
+.attachment-upload-panel[hidden]{display:none}
+.attachment-upload-panel form{display:grid;gap:12px}
+.attachment-upload-panel label{display:grid;gap:7px;font-size:11px;font-weight:650;color:var(--muted,#64748b)}
+.attachment-upload-panel input:not([type=file]){width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line,#e2e8f0);border-radius:8px;background:var(--surface,#fff);color:inherit;font:inherit}
+.attachment-upload-panel input[type=file]{font-size:11px;max-width:100%}
+.attachment-upload-panel small{font-size:10px;color:var(--muted,#64748b)}
+.attachment-list{display:grid;gap:9px;margin-top:14px}
+.attachment-card{display:flex;align-items:center;gap:13px;padding:13px;border:1px solid var(--line,#e2e8f0);border-radius:12px;background:var(--surface,#fff);min-width:0}
+.attachment-card[hidden]{display:none}
+.attachment-file-icon{width:42px;height:46px;flex:none;display:grid;place-items:center;border-radius:9px;background:var(--surface-muted,#f1f5f9);font-size:10px;font-weight:850;color:var(--accent,#5865df)}
+.attachment-file-info{flex:1;min-width:0}
+.attachment-file-info strong,.attachment-file-info span{display:block;overflow-wrap:anywhere}
+.attachment-file-info strong{font-size:12px}
+.attachment-file-info span{font-size:10px;color:var(--muted,#64748b);margin-top:4px}
+.attachment-file-info p{font-size:10px;color:var(--muted,#64748b);margin:5px 0 0}
+.attachment-file-actions{display:flex;align-items:center;gap:9px;flex:none}
+.attachment-file-actions a,.attachment-file-actions button{font-size:11px;text-decoration:none;color:var(--accent,#5865df);border:0;background:transparent;cursor:pointer}
+.attachment-file-actions button{color:#dc2626}
+html[data-theme="dark"] .timeline-entry-main,html[data-theme="dark"] .attachment-card,html[data-theme="dark"] .attachment-upload-panel{background:#202738;border-color:#394257}
+html[data-theme="dark"] .timeline-toolbar input,html[data-theme="dark"] .timeline-toolbar select,html[data-theme="dark"] .attachment-toolbar input,html[data-theme="dark"] .attachment-upload-panel input{background:#252e40;color:#eef1f8;border-color:#394257}
+@media(max-width:650px){.timeline-toolbar,.attachment-toolbar{align-items:stretch;flex-direction:column}.timeline-toolbar input,.attachment-toolbar input{width:100%;box-sizing:border-box}.timeline-entry-top{flex-direction:column;gap:4px}.attachment-card{align-items:flex-start;flex-wrap:wrap}.attachment-file-info{width:calc(100% - 58px)}.attachment-file-actions{margin-left:55px}}
